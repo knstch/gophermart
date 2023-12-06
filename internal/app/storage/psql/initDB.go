@@ -5,31 +5,31 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/knstch/gophermart/internal/app/errorLogger"
+	"github.com/knstch/gophermart/internal/app/logger"
+
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
 )
 
-func InitDB(db *sql.DB) error {
-
-	tx, err := db.Begin()
-	if err != nil {
-		errorLogger.ErrorLogger("Proccess a transaction: ", err)
-		return err
-	}
-	initialization := `CREATE TABLE IF NOT EXISTS users(
-		 login varchar(255) UNIQUE,
-		 password varchar(255));`
-
+func InitDB(dbParams *sql.DB) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err = db.ExecContext(ctx, initialization)
+	db := bun.NewDB(dbParams, pgdialect.New())
+
+	_, err := db.NewCreateTable().Model((*Users)(nil)).IfNotExists().Exec(ctx)
 	if err != nil {
-		tx.Rollback()
-		errorLogger.ErrorLogger("Can't exec: ", err)
+		logger.ErrorLogger("Error initing table Users: ", err)
 		return err
 	}
 
-	errorLogger.InfoLogger("Tables inited")
+	_, err = db.NewCreateTable().Model((*Orders)(nil)).IfNotExists().Exec(ctx)
+	if err != nil {
+		logger.ErrorLogger("Error initing table Orders: ", err)
+		return err
+	}
 
-	return tx.Commit()
+	logger.InfoLogger("Tables inited")
+
+	return nil
 }

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/knstch/gophermart/internal/app/errorLogger"
+	"github.com/knstch/gophermart/internal/app/logger"
 )
 
 type gzipWriter struct {
@@ -81,7 +81,7 @@ func GzipMiddleware(h http.Handler) http.Handler {
 			decompressedReq, err := newCompressReader(req.Body)
 			if err != nil {
 				res.WriteHeader(http.StatusInternalServerError)
-				errorLogger.ErrorLogger("Error during decompression: ", err)
+				logger.ErrorLogger("Error during decompression: ", err)
 				return
 			}
 			req.Body = decompressedReq

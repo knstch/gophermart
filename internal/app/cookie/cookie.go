@@ -4,20 +4,19 @@ import (
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/knstch/gophermart/internal/app/errorLogger"
+	"github.com/knstch/gophermart/internal/app/logger"
 )
 
 func buildJWTString(login string, password string) (string, error) {
 	const secretKey = "aboba"
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"login":    login,
-		"password": password,
+		"login": login,
 	})
 
 	tokenString, err := token.SignedString([]byte(secretKey))
 	if err != nil {
-		errorLogger.ErrorLogger("Error signing token: ", err)
+		logger.ErrorLogger("Error signing token: ", err)
 		return "", err
 	}
 
@@ -27,7 +26,7 @@ func buildJWTString(login string, password string) (string, error) {
 func SetAuth(res http.ResponseWriter, login string, password string) error {
 	jwt, err := buildJWTString(login, password)
 	if err != nil {
-		errorLogger.ErrorLogger("Error making cookie: ", err)
+		logger.ErrorLogger("Error making cookie: ", err)
 		return err
 	}
 
@@ -39,4 +38,31 @@ func SetAuth(res http.ResponseWriter, login string, password string) error {
 	http.SetCookie(res, &cookie)
 
 	return nil
+}
+
+type Claims struct {
+	jwt.RegisteredClaims
+	Login string
+}
+
+func GetLogin(tokenString string) (string, error) {
+	const secretKey = "aboba"
+	// создаём экземпляр структуры с утверждениями
+	claims := &Claims{}
+	// парсим из строки токена tokenString в структуру claims
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			logger.ErrorLogger("unexpected signing method", nil)
+			return nil, nil
+		}
+		return []byte(secretKey), nil
+	})
+	if err != nil {
+		return "", err
+	}
+	if !token.Valid {
+		logger.ErrorLogger("Token is not valid", nil)
+		return "", err
+	}
+	return claims.Login, nil
 }

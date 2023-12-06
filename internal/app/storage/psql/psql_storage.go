@@ -3,11 +3,8 @@ package psql
 import (
 	"context"
 	"database/sql"
-	"errors"
 
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/knstch/gophermart/internal/app/errorLogger"
+	"github.com/knstch/gophermart/internal/app/logger"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 )
@@ -21,7 +18,7 @@ func NewPsqlStorage(db *sql.DB) *PsqURLlStorage {
 }
 
 func (storage *PsqURLlStorage) Register(ctx context.Context, login string, password string) error {
-	credentials := &Users{
+	credentials := &User{
 		Login:    login,
 		Password: password,
 	}
@@ -32,15 +29,54 @@ func (storage *PsqURLlStorage) Register(ctx context.Context, login string, passw
 		Model(credentials).
 		Exec(ctx)
 
-	var pgErr *pgconn.PgError
-
-	if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
-		errorLogger.ErrorLogger("Have a duplicate: ", err)
-		return err
-	} else if err != nil {
-		errorLogger.ErrorLogger("Error writing data: ", err)
+	if err != nil {
+		logger.ErrorLogger("Error writing data: ", err)
 		return err
 	}
 
+	return nil
+}
+
+func (storage *PsqURLlStorage) CheckCredentials(ctx context.Context, login string, password string) error {
+	var user User
+
+	db := bun.NewDB(storage.db, pgdialect.New())
+
+	err := db.NewSelect().Model(&user).Where("login = ? and password = ?", login, password).Scan(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, order int) error {
+	userOrder := &Order{
+		Login: login,
+		Order: order,
+	}
+
+	db := bun.NewDB(storage.db, pgdialect.New())
+
+	checkOrder := new(Order)
+
+	err := db.NewSelect().
+		Model(checkOrder).
+		Where("order_number = ?", order).
+		Scan(ctx)
+	if err != nil {
+		_, err = db.NewInsert().
+			Model(userOrder).
+			Exec(ctx)
+
+		if err != nil {
+			logger.ErrorLogger("Error writing data: ", err)
+			return err
+		}
+		return nil
+	}
+	if checkOrder.Login != login && checkOrder.Order == order {
+		return ErrAlreadyLoadedOrder
+	}
 	return nil
 }

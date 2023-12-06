@@ -8,6 +8,8 @@ import (
 
 type Storage interface {
 	Register(ctx context.Context, email string, password string) error
+	CheckCredentials(ctx context.Context, login string, password string) error
+	InsertOrder(ctx context.Context, login string, order int) error
 }
 
 type Handler struct {
