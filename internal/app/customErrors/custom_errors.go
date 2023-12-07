@@ -1,0 +1,14 @@
+package customErrors
+
+import "errors"
+
+// An error indicating that an order is loaded by another user
+var ErrAlreadyLoadedOrder = errors.New("order is loaded by another user")
+
+// An error indicating that an order is loaded by user
+var ErrYouAlreadyLoadedOrder = errors.New("order is loaded by you")
+
+// An error indicating that order number is not passed by Lunh algorythm
+var ErrWrongOrderNum = errors.New("wrong order number")
+
+var ErrAuth = errors.New("you are not authenticated")

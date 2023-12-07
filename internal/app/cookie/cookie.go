@@ -5,7 +5,13 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/knstch/gophermart/internal/app/logger"
+	"github.com/knstch/gophermart/internal/app/customErrors"
 )
+
+type Claims struct {
+	jwt.RegisteredClaims
+	Login string
+}
 
 func buildJWTString(login string, password string) (string, error) {
 	const secretKey = "aboba"
@@ -40,12 +46,7 @@ func SetAuth(res http.ResponseWriter, login string, password string) error {
 	return nil
 }
 
-type Claims struct {
-	jwt.RegisteredClaims
-	Login string
-}
-
-func GetLogin(tokenString string) (string, error) {
+func getLogin(tokenString string) (string, error) {
 	const secretKey = "aboba"
 	// создаём экземпляр структуры с утверждениями
 	claims := &Claims{}
@@ -65,4 +66,20 @@ func GetLogin(tokenString string) (string, error) {
 		return "", err
 	}
 	return claims.Login, nil
+}
+
+func GetCookie(req *http.Request) (string, error) {
+	signedLogin, err := req.Cookie("Auth")
+	if err != nil {
+		logger.ErrorLogger("Error getting cookie", err)
+		return "", customErrors.ErrAuth
+	}
+
+	login, err := getLogin(signedLogin.Value)
+	if err != nil {
+		logger.ErrorLogger("Error reading cookie", err)
+		return "", err
+	}
+
+	return login, nil
 }

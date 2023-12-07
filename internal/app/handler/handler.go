@@ -5,17 +5,12 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"strconv"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/knstch/gophermart/internal/app/cookie"
+	"github.com/knstch/gophermart/internal/app/customErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
-	"github.com/knstch/gophermart/internal/app/storage/psql"
 )
-
-func NewHandler(s Storage) *Handler {
-	return &Handler{s: s}
-}
 
 func (h *Handler) SignUp(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
@@ -99,24 +94,15 @@ func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	orderNum, err := strconv.Atoi(string(body))
-	if err != nil {
-		logger.ErrorLogger("Error converting order to num: ", err)
-		res.WriteHeader(http.StatusBadRequest)
-		res.Write([]byte("Wrong order number format"))
-		return
-	}
+	orderNum := string(body)
 
-	signedLogin, err := req.Cookie("Auth")
-	if err != nil {
+	login, err := cookie.GetCookie(req)
+	if errors.Is(err, customErrors.ErrAuth) {
 		logger.ErrorLogger("Error getting cookie", err)
 		res.WriteHeader(401)
 		res.Write([]byte("You are not authenticated"))
 		return
-	}
-
-	login, err := cookie.GetLogin(signedLogin.Value)
-	if err != nil {
+	} else if err != nil {
 		logger.ErrorLogger("Error reading cookie", err)
 		res.WriteHeader(http.StatusInternalServerError)
 		res.Write([]byte("Internal Server Error"))
@@ -124,16 +110,91 @@ func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 	}
 
 	err = h.s.InsertOrder(req.Context(), login, orderNum)
-	if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
+	if errors.Is(err, customErrors.ErrAlreadyLoadedOrder) {
+		res.WriteHeader(409)
+		res.Write([]byte("Order is already loaded by another user"))
+		return
+	} else if errors.Is(err, customErrors.ErrYouAlreadyLoadedOrder) {
 		res.WriteHeader(200)
 		res.Write([]byte("Order is already loaded"))
 		return
-	} else if errors.Is(err, psql.ErrAlreadyLoadedOrder) {
-		res.WriteHeader(409)
-		res.Write([]byte("Order is already loaded by another user"))
+	} else if errors.Is(err, customErrors.ErrWrongOrderNum) {
+		res.WriteHeader(422)
+		res.Write([]byte("Wrong order number"))
 		return
 	}
 
 	res.WriteHeader(202)
 	res.Write([]byte("Successfully loaded ordred"))
+}
+
+func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
+	login, err := cookie.GetCookie(req)
+	if errors.Is(err, customErrors.ErrAuth) {
+		logger.ErrorLogger("Error getting cookie", err)
+		res.WriteHeader(401)
+		res.Write([]byte("You are not authenticated"))
+		return
+	} else if err != nil {
+		logger.ErrorLogger("Error reading cookie", err)
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte("Internal Server Error"))
+		return
+	}
+
+	orders, err := h.s.GetOrders(req.Context(), login)
+	if err != nil {
+		logger.ErrorLogger("Error getting orders", err)
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte("Internal Server Error"))
+		return
+	}
+
+	if len(orders) == 4 {
+		res.WriteHeader(204)
+		res.Write([]byte("You have no orders"))
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	res.Write([]byte(orders))
+}
+
+func (h *Handler) Balance(res http.ResponseWriter, req *http.Request) {
+	login, err := cookie.GetCookie(req)
+	if errors.Is(err, customErrors.ErrAuth) {
+		logger.ErrorLogger("Error getting cookie", err)
+		res.WriteHeader(401)
+		res.Write([]byte("You are not authenticated"))
+		return
+	} else if err != nil {
+		logger.ErrorLogger("Error reading cookie", err)
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte("Internal Server Error"))
+		return
+	}
+
+	balance, withdrawn, err := h.s.GetBalance(req.Context(), login)
+	if err != nil {
+		logger.ErrorLogger("Error getting balance", err)
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte("Internal Server Error"))
+	}
+
+	userBalance := balanceInfo{
+		Balance:   balance,
+		Withdrawn: withdrawn,
+	}
+
+	jsonUserBalance, err := json.Marshal(userBalance)
+	if err != nil {
+		logger.ErrorLogger("Error marshaling json", err)
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte("Internal Server Error"))
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	res.Write([]byte(jsonUserBalance))
 }

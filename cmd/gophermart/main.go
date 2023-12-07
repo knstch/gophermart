@@ -23,6 +23,8 @@ func RequestsRouter(h *handler.Handler) chi.Router {
 	router.Post("/api/user/register", h.SignUp)
 	router.Post("/api/user/login", h.Auth)
 	router.Post("/api/user/orders", h.UploadOrder)
+	router.Get("/api/user/orders", h.GetOrders)
+	router.Get("/api/user/balance", h.Balance)
 	return router
 }
 
