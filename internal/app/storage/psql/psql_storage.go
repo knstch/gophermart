@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/knstch/gophermart/internal/app/gophermartErrors"
+	gophermarterrors "github.com/knstch/gophermart/internal/app/gophermartErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
 	validitycheck "github.com/knstch/gophermart/internal/app/validityCheck"
 	"github.com/uptrace/bun"
@@ -125,7 +125,7 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]b
 
 	for rows.Next() {
 		var orderRow Order
-		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Time, &orderRow.Status)
+		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Time, &orderRow.Status, &orderRow.SpentBonuses)
 		if err != nil {
 			logger.ErrorLogger("Error scanning data: ", err)
 			return nil, err
