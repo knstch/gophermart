@@ -11,6 +11,7 @@ var ErrYouAlreadyLoadedOrder = errors.New("order is loaded by you")
 // An error indicating that order number is not passed by Lunh algorythm
 var ErrWrongOrderNum = errors.New("wrong order number")
 
+// An error indication that a users is not authenticated
 var ErrAuth = errors.New("you are not authenticated")
 
 var ErrNotEnoughBalance = errors.New("not enough balance")
