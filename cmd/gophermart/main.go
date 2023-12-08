@@ -9,16 +9,17 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/knstch/gophermart/cmd/config"
 	"github.com/knstch/gophermart/internal/app/handler"
 	"github.com/knstch/gophermart/internal/app/logger"
 	"github.com/knstch/gophermart/internal/app/middleware/compressor"
-	"github.com/knstch/gophermart/internal/app/middleware/statusLogger"
+	statuslogger "github.com/knstch/gophermart/internal/app/middleware/statusLogger"
 	"github.com/knstch/gophermart/internal/app/storage/psql"
 )
 
 func RequestsRouter(h *handler.Handler) chi.Router {
 	router := chi.NewRouter()
-	router.Use(statusLogger.RequestsLogger)
+	router.Use(statuslogger.RequestsLogger)
 	router.Use(compressor.GzipMiddleware)
 	router.Post("/api/user/register", h.SignUp)
 	router.Post("/api/user/login", h.Auth)
@@ -30,10 +31,9 @@ func RequestsRouter(h *handler.Handler) chi.Router {
 	return router
 }
 
-const psqlStorage = "host=localhost user=postgres password=Xer@0101 dbname=gophermart sslmode=disable"
-
 func main() {
-	db, err := sql.Open("pgx", psqlStorage)
+	config.ParseConfig()
+	db, err := sql.Open("pgx", config.ReadyConfig.Database)
 	if err != nil {
 		logger.ErrorLogger("Can't open connection: ", err)
 	}
@@ -47,7 +47,7 @@ func main() {
 	h := handler.NewHandler(storage)
 
 	srv := http.Server{
-		Addr:    ":8080",
+		Addr:    config.ReadyConfig.ServerAddr,
 		Handler: RequestsRouter(h),
 	}
 
