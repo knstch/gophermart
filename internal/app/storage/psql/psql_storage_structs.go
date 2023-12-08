@@ -33,7 +33,7 @@ type jsonOrder struct {
 type Users struct {
 	Login     string `bun:"type:varchar(255),unique"`
 	Password  string `bun:"type:varchar(255)"`
-	Balance   int    `bun:"type:integer"`
+	Balance   int    `bun:"type:float"`
 	Withdrawn int    `bun:"type:integer"`
 }
 
