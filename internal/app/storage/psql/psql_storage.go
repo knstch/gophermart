@@ -147,7 +147,7 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]b
 
 // GetBalance accepts login and returns bonuses balance, withdraw
 // amount, and error.
-func (storage *PsqURLlStorage) GetBalance(ctx context.Context, login string) (int, int, error) {
+func (storage *PsqURLlStorage) GetBalance(ctx context.Context, login string) (int, float32, error) {
 	var user User
 
 	db := bun.NewDB(storage.db, pgdialect.New())
