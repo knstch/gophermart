@@ -7,24 +7,28 @@ import (
 	"go.uber.org/zap"
 )
 
-type (
-	responseData struct {
-		status int
-	}
+// responseData saves response status code.
+type responseData struct {
+	status int
+}
 
-	loggingResponse struct {
-		http.ResponseWriter
-		responseData *responseData
-	}
-)
+// loggingResponse contains responseData to get data of a request
+// and implements http.ResponseWriter interface.
+type loggingResponse struct {
+	http.ResponseWriter
+	responseData *responseData
+}
 
-// Модификация интерфейса WriteHeader, добавляем сохрание статус кода в переменную
+// Modification of the WriteHeader intefrace saving status code to a variable.
 func (r *loggingResponse) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode
 }
 
-// Middlware обработчик для запросов, записывает URI, method, duration
+// Middleware for requests writing and logging URI, method, duration. It accepts handler
+// and returns handler. Inside of the function we implement a new "logFn" function
+// accepting request and response. In this function we swap a standard response interface
+// to a modified to write the statuscode.
 func RequestsLogger(h http.Handler) http.Handler {
 	var logger, err = zap.NewDevelopment()
 	var sugar = *logger.Sugar()
@@ -34,11 +38,9 @@ func RequestsLogger(h http.Handler) http.Handler {
 	defer logger.Sync()
 
 	logFn := func(res http.ResponseWriter, req *http.Request) {
-
 		responseData := &responseData{
 			status: 0,
 		}
-
 		loggingRes := loggingResponse{
 			ResponseWriter: res,
 			responseData:   responseData,

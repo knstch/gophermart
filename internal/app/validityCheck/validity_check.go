@@ -2,6 +2,8 @@ package validitycheck
 
 import "strconv"
 
+// LuhnAlgorithm checks an order number by luhn algorithm
+// and returns true if the number is correct and false if it's wrong.
 func LuhnAlgorithm(orderNumber string) bool {
 	runes := []rune(orderNumber)
 	sum := 0

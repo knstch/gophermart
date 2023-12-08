@@ -11,9 +11,8 @@ import (
 	"github.com/uptrace/bun/dialect/pgdialect"
 )
 
-// A functing receiving database params and initializing tables
-// in the database. The function returns error in a case of any issues
-// and nil if everything is good.
+// A functing receiving database params and creates Users and Orders tables
+// in the database. The function returns error.
 func InitDB(dbParams *sql.DB) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

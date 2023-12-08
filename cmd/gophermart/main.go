@@ -25,6 +25,8 @@ func RequestsRouter(h *handler.Handler) chi.Router {
 	router.Post("/api/user/orders", h.UploadOrder)
 	router.Get("/api/user/orders", h.GetOrders)
 	router.Get("/api/user/balance", h.Balance)
+	router.Post("/api/user/balance/withdraw", h.WithdrawBonuses)
+	router.Get("/api/user/withdrawals", h.GetSpendOrderBonuses)
 	return router
 }
 

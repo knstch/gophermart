@@ -12,3 +12,7 @@ var ErrYouAlreadyLoadedOrder = errors.New("order is loaded by you")
 var ErrWrongOrderNum = errors.New("wrong order number")
 
 var ErrAuth = errors.New("you are not authenticated")
+
+var ErrNotEnoughBalance = errors.New("not enough balance")
+
+var ErrNoRows = errors.New("no rows were found")

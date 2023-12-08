@@ -198,3 +198,86 @@ func (h *Handler) Balance(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusOK)
 	res.Write([]byte(jsonUserBalance))
 }
+
+func (h *Handler) WithdrawBonuses(res http.ResponseWriter, req *http.Request) {
+	login, err := cookie.GetCookie(req)
+	if errors.Is(err, customErrors.ErrAuth) {
+		logger.ErrorLogger("Error getting cookie", err)
+		res.WriteHeader(401)
+		res.Write([]byte("You are not authenticated"))
+		return
+	} else if err != nil {
+		logger.ErrorLogger("Error reading cookie", err)
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte("Internal Server Error"))
+		return
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		logger.ErrorLogger("Error during opening body: ", err)
+	}
+
+	var spendRequest getSpendBonusRequest
+
+	err = json.Unmarshal(body, &spendRequest)
+	if err != nil {
+		logger.ErrorLogger("Error unmarshaling data: ", err)
+		res.WriteHeader(http.StatusBadRequest)
+		res.Write([]byte("Wrong request"))
+		return
+	}
+
+	err = h.s.SpendBonuses(req.Context(), login, spendRequest.Order, spendRequest.Sum)
+	if errors.Is(err, customErrors.ErrNotEnoughBalance) {
+		res.WriteHeader(402)
+		res.Write([]byte("Not enough balance"))
+		return
+	} else if errors.Is(err, customErrors.ErrWrongOrderNum) {
+		res.WriteHeader(422)
+		res.Write([]byte("Wrong order number"))
+		return
+	} else if errors.Is(err, customErrors.ErrAlreadyLoadedOrder) || errors.Is(err, customErrors.ErrYouAlreadyLoadedOrder) {
+		res.WriteHeader(409)
+		res.Write([]byte("Order is already loaded"))
+		return
+	} else if err != nil {
+		logger.ErrorLogger("Error spending bonuses", err)
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte("Internal Server Error"))
+		return
+	}
+
+	res.WriteHeader(http.StatusOK)
+	res.Write([]byte("Bonuses successfully spent"))
+}
+
+func (h *Handler) GetSpendOrderBonuses(res http.ResponseWriter, req *http.Request) {
+	login, err := cookie.GetCookie(req)
+	if errors.Is(err, customErrors.ErrAuth) {
+		logger.ErrorLogger("Error getting cookie", err)
+		res.WriteHeader(401)
+		res.Write([]byte("You are not authenticated"))
+		return
+	} else if err != nil {
+		logger.ErrorLogger("Error reading cookie", err)
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte("Internal Server Error"))
+		return
+	}
+
+	ordersWithBonuses, err := h.s.GetOrdersWithBonuses(req.Context(), login)
+	if errors.Is(err, customErrors.ErrNoRows) {
+		res.WriteHeader(204)
+		res.Write([]byte("You have not spent any bonuses"))
+		return
+	} else if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte("err"))
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	res.Write([]byte(ordersWithBonuses))
+}
