@@ -12,8 +12,8 @@ type Storage interface {
 	CheckCredentials(ctx context.Context, login string, password string) error
 	InsertOrder(ctx context.Context, login string, order string) error
 	GetOrders(ctx context.Context, login string) ([]byte, error)
-	GetBalance(ctx context.Context, login string) (int, int, error)
-	SpendBonuses(ctx context.Context, login string, orderNum string, spendBonuses int) error
+	GetBalance(ctx context.Context, login string) (float32, float32, error)
+	SpendBonuses(ctx context.Context, login string, orderNum string, spendBonuses float32) error
 	GetOrdersWithBonuses(ctx context.Context, login string) ([]byte, error)
 }
 
@@ -34,14 +34,14 @@ type credentials struct {
 
 // A struct used to put data to json response
 type balanceInfo struct {
-	Balance   int `json:"balance"`
-	Withdrawn int `json:"withdrawn"`
+	Balance   float32 `json:"balance"`
+	Withdrawn float32 `json:"withdrawn"`
 }
 
 // A variable made to check an error type using errors.As
 var pgErr *pgconn.PgError
 
 type getSpendBonusRequest struct {
-	Order string `json:"order"`
-	Sum   int    `json:"sum"`
+	Order string  `json:"order"`
+	Sum   float32 `json:"sum"`
 }

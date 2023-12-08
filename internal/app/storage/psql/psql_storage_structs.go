@@ -8,7 +8,7 @@ import (
 type User struct {
 	Login     string  `bun:"login"`
 	Password  string  `bun:"password"`
-	Balance   int     `bun:"balance"`
+	Balance   float32 `bun:"balance"`
 	Withdrawn float32 `bun:"withdrawn"`
 }
 

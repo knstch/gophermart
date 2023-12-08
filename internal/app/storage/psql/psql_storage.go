@@ -147,7 +147,7 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]b
 
 // GetBalance accepts login and returns bonuses balance, withdraw
 // amount, and error.
-func (storage *PsqURLlStorage) GetBalance(ctx context.Context, login string) (int, float32, error) {
+func (storage *PsqURLlStorage) GetBalance(ctx context.Context, login string) (float32, float32, error) {
 	var user User
 
 	db := bun.NewDB(storage.db, pgdialect.New())
@@ -164,7 +164,7 @@ func (storage *PsqURLlStorage) GetBalance(ctx context.Context, login string) (in
 	return user.Balance, user.Withdrawn, nil
 }
 
-func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, orderNum string, spendBonuses int) error {
+func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, orderNum string, spendBonuses float32) error {
 	bonusesAvailable, _, nil := storage.GetBalance(ctx, login)
 	if bonusesAvailable < spendBonuses {
 		return gophermarterrors.ErrNotEnoughBalance
