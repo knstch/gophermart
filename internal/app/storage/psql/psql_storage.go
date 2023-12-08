@@ -111,11 +111,14 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]b
 
 	db := bun.NewDB(storage.db, pgdialect.New())
 
+	fixContext, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	rows, err := db.NewSelect().
 		Model(order).
 		Where("login = ?", login).
 		Order("uploaded_at ASC").
-		Rows(ctx)
+		Rows(fixContext)
 	rows.Err()
 	if err != nil {
 		logger.ErrorLogger("Error getting data: ", err)
