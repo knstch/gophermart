@@ -8,7 +8,7 @@ import (
 
 	"github.com/jackc/pgerrcode"
 	"github.com/knstch/gophermart/internal/app/cookie"
-	"github.com/knstch/gophermart/internal/app/customErrors"
+	"github.com/knstch/gophermart/internal/app/customerrors"
 	"github.com/knstch/gophermart/internal/app/logger"
 )
 
@@ -97,7 +97,7 @@ func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 	orderNum := string(body)
 
 	login, err := cookie.GetCookie(req)
-	if errors.Is(err, customErrors.ErrAuth) {
+	if errors.Is(err, customerrors.ErrAuth) {
 		logger.ErrorLogger("Error getting cookie", err)
 		res.WriteHeader(401)
 		res.Write([]byte("You are not authenticated"))
@@ -110,15 +110,15 @@ func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 	}
 
 	err = h.s.InsertOrder(req.Context(), login, orderNum)
-	if errors.Is(err, customErrors.ErrAlreadyLoadedOrder) {
+	if errors.Is(err, customerrors.ErrAlreadyLoadedOrder) {
 		res.WriteHeader(409)
 		res.Write([]byte("Order is already loaded by another user"))
 		return
-	} else if errors.Is(err, customErrors.ErrYouAlreadyLoadedOrder) {
+	} else if errors.Is(err, customerrors.ErrYouAlreadyLoadedOrder) {
 		res.WriteHeader(200)
 		res.Write([]byte("Order is already loaded"))
 		return
-	} else if errors.Is(err, customErrors.ErrWrongOrderNum) {
+	} else if errors.Is(err, customerrors.ErrWrongOrderNum) {
 		res.WriteHeader(422)
 		res.Write([]byte("Wrong order number"))
 		return
@@ -129,8 +129,9 @@ func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
 	login, err := cookie.GetCookie(req)
-	if errors.Is(err, customErrors.ErrAuth) {
+	if errors.Is(err, customerrors.ErrAuth) {
 		logger.ErrorLogger("Error getting cookie", err)
 		res.WriteHeader(401)
 		res.Write([]byte("You are not authenticated"))
@@ -155,15 +156,13 @@ func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
 		res.Write([]byte("You have no orders"))
 		return
 	}
-
-	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
 	res.Write([]byte(orders))
 }
 
 func (h *Handler) Balance(res http.ResponseWriter, req *http.Request) {
 	login, err := cookie.GetCookie(req)
-	if errors.Is(err, customErrors.ErrAuth) {
+	if errors.Is(err, customerrors.ErrAuth) {
 		logger.ErrorLogger("Error getting cookie", err)
 		res.WriteHeader(401)
 		res.Write([]byte("You are not authenticated"))
@@ -201,7 +200,7 @@ func (h *Handler) Balance(res http.ResponseWriter, req *http.Request) {
 
 func (h *Handler) WithdrawBonuses(res http.ResponseWriter, req *http.Request) {
 	login, err := cookie.GetCookie(req)
-	if errors.Is(err, customErrors.ErrAuth) {
+	if errors.Is(err, customerrors.ErrAuth) {
 		logger.ErrorLogger("Error getting cookie", err)
 		res.WriteHeader(401)
 		res.Write([]byte("You are not authenticated"))
@@ -229,15 +228,15 @@ func (h *Handler) WithdrawBonuses(res http.ResponseWriter, req *http.Request) {
 	}
 
 	err = h.s.SpendBonuses(req.Context(), login, spendRequest.Order, spendRequest.Sum)
-	if errors.Is(err, customErrors.ErrNotEnoughBalance) {
+	if errors.Is(err, customerrors.ErrNotEnoughBalance) {
 		res.WriteHeader(402)
 		res.Write([]byte("Not enough balance"))
 		return
-	} else if errors.Is(err, customErrors.ErrWrongOrderNum) {
+	} else if errors.Is(err, customerrors.ErrWrongOrderNum) {
 		res.WriteHeader(422)
 		res.Write([]byte("Wrong order number"))
 		return
-	} else if errors.Is(err, customErrors.ErrAlreadyLoadedOrder) || errors.Is(err, customErrors.ErrYouAlreadyLoadedOrder) {
+	} else if errors.Is(err, customerrors.ErrAlreadyLoadedOrder) || errors.Is(err, customerrors.ErrYouAlreadyLoadedOrder) {
 		res.WriteHeader(409)
 		res.Write([]byte("Order is already loaded"))
 		return
@@ -254,7 +253,7 @@ func (h *Handler) WithdrawBonuses(res http.ResponseWriter, req *http.Request) {
 
 func (h *Handler) GetSpendOrderBonuses(res http.ResponseWriter, req *http.Request) {
 	login, err := cookie.GetCookie(req)
-	if errors.Is(err, customErrors.ErrAuth) {
+	if errors.Is(err, customerrors.ErrAuth) {
 		logger.ErrorLogger("Error getting cookie", err)
 		res.WriteHeader(401)
 		res.Write([]byte("You are not authenticated"))
@@ -267,7 +266,7 @@ func (h *Handler) GetSpendOrderBonuses(res http.ResponseWriter, req *http.Reques
 	}
 
 	ordersWithBonuses, err := h.s.GetOrdersWithBonuses(req.Context(), login)
-	if errors.Is(err, customErrors.ErrNoRows) {
+	if errors.Is(err, customerrors.ErrNoRows) {
 		res.WriteHeader(204)
 		res.Write([]byte("You have not spent any bonuses"))
 		return

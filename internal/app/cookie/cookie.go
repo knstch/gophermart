@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/knstch/gophermart/internal/app/customerrors"
 	"github.com/knstch/gophermart/internal/app/logger"
-	"github.com/knstch/gophermart/internal/app/customErrors"
 )
 
 type Claims struct {
@@ -72,7 +72,7 @@ func GetCookie(req *http.Request) (string, error) {
 	signedLogin, err := req.Cookie("Auth")
 	if err != nil {
 		logger.ErrorLogger("Error getting cookie", err)
-		return "", customErrors.ErrAuth
+		return "", customerrors.ErrAuth
 	}
 
 	login, err := getLogin(signedLogin.Value)
