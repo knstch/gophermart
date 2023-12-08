@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/knstch/gophermart/internal/app/customerrors"
+	gophermarterrors "github.com/knstch/gophermart/internal/app/gophermartErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
 )
 
@@ -72,7 +72,7 @@ func GetCookie(req *http.Request) (string, error) {
 	signedLogin, err := req.Cookie("Auth")
 	if err != nil {
 		logger.ErrorLogger("Error getting cookie", err)
-		return "", customerrors.ErrAuth
+		return "", gophermarterrors.ErrAuth
 	}
 
 	login, err := getLogin(signedLogin.Value)

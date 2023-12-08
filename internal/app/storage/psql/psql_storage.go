@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/knstch/gophermart/internal/app/customerrors"
+	"github.com/knstch/gophermart/internal/app/gophermartErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
 	validitycheck "github.com/knstch/gophermart/internal/app/validityCheck"
 	"github.com/uptrace/bun"
@@ -72,7 +72,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 
 	isValid := validitycheck.LuhnAlgorithm(orderNum)
 	if !isValid {
-		return customerrors.ErrWrongOrderNum
+		return gophermarterrors.ErrWrongOrderNum
 	}
 
 	db := bun.NewDB(storage.db, pgdialect.New())
@@ -95,9 +95,9 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 		return nil
 	}
 	if checkOrder.Login != login && checkOrder.Order == orderNum {
-		return customerrors.ErrAlreadyLoadedOrder
+		return gophermarterrors.ErrAlreadyLoadedOrder
 	} else if checkOrder.Login == login && checkOrder.Order == orderNum {
-		return customerrors.ErrYouAlreadyLoadedOrder
+		return gophermarterrors.ErrYouAlreadyLoadedOrder
 	}
 	return nil
 }
@@ -167,7 +167,7 @@ func (storage *PsqURLlStorage) GetBalance(ctx context.Context, login string) (in
 func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, orderNum string, spendBonuses int) error {
 	bonusesAvailable, _, nil := storage.GetBalance(ctx, login)
 	if bonusesAvailable < spendBonuses {
-		return customerrors.ErrNotEnoughBalance
+		return gophermarterrors.ErrNotEnoughBalance
 	}
 
 	err := storage.InsertOrder(ctx, login, orderNum)
@@ -235,7 +235,7 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 	}
 
 	if noRows {
-		return nil, customerrors.ErrNoRows
+		return nil, gophermarterrors.ErrNoRows
 	}
 
 	jsonAllOrders, err := json.Marshal(allOrders)
