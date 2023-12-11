@@ -29,7 +29,7 @@ func (r *loggingResponse) WriteHeader(statusCode int) {
 // and returns handler. Inside of the function we implement a new "logFn" function
 // accepting request and response. In this function we swap a standard response interface
 // to a modified to write the statuscode.
-func RequestsLogger(h http.Handler) http.Handler {
+func WithLogger(h http.Handler) http.Handler {
 	var logger, err = zap.NewDevelopment()
 	var sugar = *logger.Sugar()
 	if err != nil {

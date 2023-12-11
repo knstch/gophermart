@@ -67,7 +67,7 @@ func (gr *gzipReader) Close() error {
 }
 
 // Сжимает данные
-func GzipMiddleware(h http.Handler) http.Handler {
+func WithCompressor(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		originalRes := res
 		supportsGzip := strings.Contains(req.Header.Get("Accept-Encoding"), "gzip")

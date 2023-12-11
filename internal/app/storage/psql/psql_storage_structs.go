@@ -14,11 +14,11 @@ type User struct {
 
 // A struct designed to insert login and order number to orders table
 type Order struct {
-	Login        string  `bun:"login"`
-	Order        string  `bun:"order"`
-	Time         string  `bun:"uploaded_at"`
-	Status       string  `bun:"status"`
-	SpentBonuses float32 `bun:"bonuses_withdrawn"`
+	Login            string  `bun:"login"`
+	Order            string  `bun:"order"`
+	Time             string  `bun:"uploaded_at"`
+	Status           string  `bun:"status"`
+	BonusesWithdrawn float32 `bun:"bonuses_withdrawn"`
 }
 
 // A struct used to convert data to JSON

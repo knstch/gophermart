@@ -63,11 +63,11 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 	now := time.Now()
 
 	userOrder := &Order{
-		Login:        login,
-		Order:        orderNum,
-		Time:         now.Format(time.RFC3339),
-		Status:       "NEW",
-		SpentBonuses: 0,
+		Login:            login,
+		Order:            orderNum,
+		Time:             now.Format(time.RFC3339),
+		Status:           "NEW",
+		BonusesWithdrawn: 0,
 	}
 
 	isValid := validitycheck.LuhnAlgorithm(orderNum)
@@ -125,7 +125,7 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]b
 
 	for rows.Next() {
 		var orderRow Order
-		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Time, &orderRow.Status, &orderRow.SpentBonuses)
+		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Time, &orderRow.Status, &orderRow.BonusesWithdrawn)
 		if err != nil {
 			logger.ErrorLogger("Error scanning data: ", err)
 			return nil, err
@@ -170,21 +170,45 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 		return gophermarterrors.ErrNotEnoughBalance
 	}
 
-	err := storage.InsertOrder(ctx, login, orderNum)
+	tx, err := storage.db.Begin()
 	if err != nil {
+		logger.ErrorLogger("Error making transaction: ", err)
 		return err
 	}
+	defer tx.Rollback()
 
 	db := bun.NewDB(storage.db, pgdialect.New())
 
-	_, err = db.NewUpdate().
-		TableExpr("orders").
-		Set("bonuses_withdrawn = ?", spendBonuses).
+	checkOrder := new(Order)
+
+	now := time.Now()
+
+	userOrder := &Order{
+		Login:            login,
+		Order:            orderNum,
+		Time:             now.Format(time.RFC3339),
+		Status:           "NEW",
+		BonusesWithdrawn: spendBonuses,
+	}
+
+	err = db.NewSelect().
+		Model(checkOrder).
 		Where("order_number = ?", orderNum).
-		Exec(ctx)
+		Scan(ctx)
 	if err != nil {
-		logger.ErrorLogger("Error speding bonuses: ", err)
-		return err
+		_, err := db.NewInsert().
+			Model(userOrder).
+			Exec(ctx)
+
+		if err != nil {
+			logger.ErrorLogger("Error writing data: ", err)
+			return err
+		}
+	}
+	if checkOrder.Login != login && checkOrder.Order == orderNum {
+		return gophermarterrors.ErrAlreadyLoadedOrder
+	} else if checkOrder.Login == login && checkOrder.Order == orderNum {
+		return gophermarterrors.ErrYouAlreadyLoadedOrder
 	}
 
 	_, err = db.NewUpdate().
@@ -196,6 +220,13 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 		logger.ErrorLogger("Error withdrawning bonuses from the account: ", err)
 		return err
 	}
+
+	err = tx.Commit()
+	if err != nil {
+		logger.ErrorLogger("Error commiting transaction: ", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -222,7 +253,7 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 	for rows.Next() {
 		noRows = false
 		var orderRow Order
-		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Time, &orderRow.Status, &orderRow.SpentBonuses)
+		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Time, &orderRow.Status, &orderRow.BonusesWithdrawn)
 		if err != nil {
 			logger.ErrorLogger("Error scanning data: ", err)
 			return nil, err
@@ -230,7 +261,7 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 		allOrders = append(allOrders, jsonOrder{
 			Order:        orderRow.Order,
 			Time:         orderRow.Time,
-			SpentBonuses: orderRow.SpentBonuses,
+			SpentBonuses: orderRow.BonusesWithdrawn,
 		})
 	}
 

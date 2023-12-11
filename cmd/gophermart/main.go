@@ -15,12 +15,14 @@ import (
 	"github.com/knstch/gophermart/internal/app/middleware/compressor"
 	statuslogger "github.com/knstch/gophermart/internal/app/middleware/statusLogger"
 	"github.com/knstch/gophermart/internal/app/storage/psql"
+	"github.com/knstch/gophermart/internal/app/middleware/cookieLogin"
 )
 
 func RequestsRouter(h *handler.Handler) chi.Router {
 	router := chi.NewRouter()
-	router.Use(statuslogger.RequestsLogger)
-	router.Use(compressor.GzipMiddleware)
+	router.Use(statuslogger.WithLogger)
+	router.Use(compressor.WithCompressor)
+	router.Use(cookielogin.WithCookieLogin)
 	router.Post("/api/user/register", h.SignUp)
 	router.Post("/api/user/login", h.Auth)
 	router.Post("/api/user/orders", h.UploadOrder)

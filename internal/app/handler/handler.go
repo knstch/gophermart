@@ -10,6 +10,7 @@ import (
 	"github.com/knstch/gophermart/internal/app/cookie"
 	gophermarterrors "github.com/knstch/gophermart/internal/app/gophermartErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
+	cookielogin "github.com/knstch/gophermart/internal/app/middleware/cookieLogin"
 )
 
 func (h *Handler) SignUp(res http.ResponseWriter, req *http.Request) {
@@ -96,18 +97,7 @@ func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 
 	orderNum := string(body)
 
-	login, err := cookie.GetCookie(req)
-	if errors.Is(err, gophermarterrors.ErrAuth) {
-		logger.ErrorLogger("Error getting cookie", err)
-		res.WriteHeader(401)
-		res.Write([]byte("You are not authenticated"))
-		return
-	} else if err != nil {
-		logger.ErrorLogger("Error reading cookie", err)
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Internal Server Error"))
-		return
-	}
+	login := req.Context().Value(cookielogin.LoginKey).(string)
 
 	err = h.s.InsertOrder(req.Context(), login, orderNum)
 	if errors.Is(err, gophermarterrors.ErrAlreadyLoadedOrder) {
@@ -129,20 +119,9 @@ func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-Type", "application/json")
-	login, err := cookie.GetCookie(req)
-	if errors.Is(err, gophermarterrors.ErrAuth) {
-		logger.ErrorLogger("Error getting cookie", err)
-		res.WriteHeader(401)
-		res.Write([]byte("You are not authenticated"))
-		return
-	} else if err != nil {
-		logger.ErrorLogger("Error reading cookie", err)
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Internal Server Error"))
-		return
-	}
+	login := req.Context().Value(cookielogin.LoginKey).(string)
 
+	res.Header().Set("Content-Type", "application/json")
 	orders, err := h.s.GetOrders(req.Context(), login)
 	if err != nil {
 		logger.ErrorLogger("Error getting orders", err)
@@ -161,18 +140,7 @@ func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handler) Balance(res http.ResponseWriter, req *http.Request) {
-	login, err := cookie.GetCookie(req)
-	if errors.Is(err, gophermarterrors.ErrAuth) {
-		logger.ErrorLogger("Error getting cookie", err)
-		res.WriteHeader(401)
-		res.Write([]byte("You are not authenticated"))
-		return
-	} else if err != nil {
-		logger.ErrorLogger("Error reading cookie", err)
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Internal Server Error"))
-		return
-	}
+	login := req.Context().Value(cookielogin.LoginKey).(string)
 
 	balance, withdrawn, err := h.s.GetBalance(req.Context(), login)
 	if err != nil {
@@ -199,18 +167,7 @@ func (h *Handler) Balance(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handler) WithdrawBonuses(res http.ResponseWriter, req *http.Request) {
-	login, err := cookie.GetCookie(req)
-	if errors.Is(err, gophermarterrors.ErrAuth) {
-		logger.ErrorLogger("Error getting cookie", err)
-		res.WriteHeader(401)
-		res.Write([]byte("You are not authenticated"))
-		return
-	} else if err != nil {
-		logger.ErrorLogger("Error reading cookie", err)
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Internal Server Error"))
-		return
-	}
+	login := req.Context().Value(cookielogin.LoginKey).(string)
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -252,18 +209,7 @@ func (h *Handler) WithdrawBonuses(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handler) GetSpendOrderBonuses(res http.ResponseWriter, req *http.Request) {
-	login, err := cookie.GetCookie(req)
-	if errors.Is(err, gophermarterrors.ErrAuth) {
-		logger.ErrorLogger("Error getting cookie", err)
-		res.WriteHeader(401)
-		res.Write([]byte("You are not authenticated"))
-		return
-	} else if err != nil {
-		logger.ErrorLogger("Error reading cookie", err)
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Internal Server Error"))
-		return
-	}
+	login := req.Context().Value(cookielogin.LoginKey).(string)
 
 	ordersWithBonuses, err := h.s.GetOrdersWithBonuses(req.Context(), login)
 	if errors.Is(err, gophermarterrors.ErrNoRows) {
