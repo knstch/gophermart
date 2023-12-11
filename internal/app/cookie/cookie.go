@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/knstch/gophermart/cmd/config"
 	gophermarterrors "github.com/knstch/gophermart/internal/app/gophermartErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
 )
@@ -13,7 +14,7 @@ type Claims struct {
 	Login string
 }
 
-func buildJWTString(login string, password string) (string, error) {
+func buildJWTString(login string) (string, error) {
 	const secretKey = "aboba"
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -29,8 +30,8 @@ func buildJWTString(login string, password string) (string, error) {
 	return tokenString, nil
 }
 
-func SetAuth(res http.ResponseWriter, login string, password string) error {
-	jwt, err := buildJWTString(login, password)
+func SetAuth(res http.ResponseWriter, login string) error {
+	jwt, err := buildJWTString(login)
 	if err != nil {
 		logger.ErrorLogger("Error making cookie: ", err)
 		return err
@@ -47,7 +48,6 @@ func SetAuth(res http.ResponseWriter, login string, password string) error {
 }
 
 func getLogin(tokenString string) (string, error) {
-	const secretKey = "aboba"
 	// создаём экземпляр структуры с утверждениями
 	claims := &Claims{}
 	// парсим из строки токена tokenString в структуру claims
@@ -56,7 +56,7 @@ func getLogin(tokenString string) (string, error) {
 			logger.ErrorLogger("unexpected signing method", nil)
 			return nil, nil
 		}
-		return []byte(secretKey), nil
+		return []byte(config.ReadyConfig.SecretKey), nil
 	})
 	if err != nil {
 		return "", err

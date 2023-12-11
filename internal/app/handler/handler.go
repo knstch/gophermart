@@ -8,7 +8,7 @@ import (
 
 	"github.com/jackc/pgerrcode"
 	"github.com/knstch/gophermart/internal/app/cookie"
-	"github.com/knstch/gophermart/internal/app/gophermartErrors"
+	gophermarterrors "github.com/knstch/gophermart/internal/app/gophermartErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
 )
 
@@ -37,7 +37,7 @@ func (h *Handler) SignUp(res http.ResponseWriter, req *http.Request) {
 		res.Write([]byte("Internal Server Error"))
 		return
 	}
-	err = cookie.SetAuth(res, userData.Login, userData.Password)
+	err = cookie.SetAuth(res, userData.Login)
 	if err != nil {
 		logger.ErrorLogger("Can't set cookie: ", err)
 		res.WriteHeader(http.StatusInternalServerError)
@@ -73,7 +73,7 @@ func (h *Handler) Auth(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = cookie.SetAuth(res, userData.Login, userData.Password)
+	err = cookie.SetAuth(res, userData.Login)
 	if err != nil {
 		logger.ErrorLogger("Can't set cookie: ", err)
 		res.WriteHeader(http.StatusInternalServerError)
