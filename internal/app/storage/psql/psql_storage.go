@@ -85,17 +85,17 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 		Model(checkOrder).
 		Where("order_number = ?", orderNum).
 		Scan(ctx)
+	if checkOrder.Login != login && checkOrder.Order == orderNum {
+		return gophermarterrors.ErrAlreadyLoadedOrder
+	} else if checkOrder.Login == login && checkOrder.Order == orderNum {
+		return gophermarterrors.ErrYouAlreadyLoadedOrder
+	}
 	if err != nil {
 		_, err := db.NewInsert().
 			Model(userOrder).
 			Exec(ctx)
 
 		if err != nil {
-			if checkOrder.Login != login && checkOrder.Order == orderNum {
-				return gophermarterrors.ErrAlreadyLoadedOrder
-			} else if checkOrder.Login == login && checkOrder.Order == orderNum {
-				return gophermarterrors.ErrYouAlreadyLoadedOrder
-			}
 			logger.ErrorLogger("Error writing data: ", err)
 			return err
 		}
