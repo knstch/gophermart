@@ -121,7 +121,7 @@ func GetStatusFromAccural(order string) error {
 	logger.InfoLogger("Activated GetStatusFromAccural")
 
 	result := make(chan OrderUpdateFromAccural)
-	defer close(result)
+	// defer close(result)
 	for w := 1; w <= 5; w++ {
 		logger.InfoLogger("Activate workers")
 		go worker(OrderJob, result)
