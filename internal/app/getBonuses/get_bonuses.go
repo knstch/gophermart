@@ -3,7 +3,6 @@ package getbonuses
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"sync"
 	"time"
 
@@ -76,7 +75,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	db := bun.NewDB(storage.db, pgdialect.New())
 	_, err := db.NewUpdate().
 		TableExpr("orders").
-		Set("status = ? and accural = ?", order.Status, order.Accrual).
+		Set("status = ?, accural = ?", order.Status, order.Accrual).
 		Where("login = ?", order.Order).
 		Exec(ctx)
 	if err != nil {
@@ -154,7 +153,6 @@ func GetStatusFromAccural(order string) error {
 		wg.Add(1)
 
 		go func(jobs <-chan OrderToAccuralSys, result chan<- OrderUpdateFromAccural) {
-			logger.InfoLogger("Activate workers")
 
 			semaphore.Acquire()
 			defer wg.Done()
@@ -177,7 +175,6 @@ func GetStatusFromAccural(order string) error {
 					logger.ErrorLogger("Got error trying to send a get request from worker: ", err)
 					break
 				}
-				fmt.Printf("Status: %v\n", resp.StatusCode())
 				switch resp.StatusCode() {
 				case 429:
 					time.Sleep(3 * time.Second)

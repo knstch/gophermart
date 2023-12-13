@@ -100,11 +100,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 			return err
 		}
 
-		err = getbonuses.GetStatusFromAccural(userOrder.Order)
-		if err != nil {
-			logger.ErrorLogger("Error getting bonuses: ", err)
-		}
-		return nil
+		go  getbonuses.GetStatusFromAccural(userOrder.Order)
 	}
 
 	return nil
