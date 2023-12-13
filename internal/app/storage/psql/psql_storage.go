@@ -79,17 +79,12 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 
 	db := bun.NewDB(storage.db, pgdialect.New())
 
-	checkOrder := new(Order)
+	var checkOrder Order
 
 	err := db.NewSelect().
-		Model(checkOrder).
-		Where("order_number = ?", orderNum).
+		Model(&checkOrder).
+		Where(`"order" = ?`, orderNum).
 		Scan(ctx)
-	if checkOrder.Login != login && checkOrder.Order == orderNum {
-		return gophermarterrors.ErrAlreadyLoadedOrder
-	} else if checkOrder.Login == login && checkOrder.Order == orderNum {
-		return gophermarterrors.ErrYouAlreadyLoadedOrder
-	}
 	if err != nil {
 		_, err := db.NewInsert().
 			Model(userOrder).
@@ -100,9 +95,13 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 			return err
 		}
 
-		go  getbonuses.GetStatusFromAccural(userOrder.Order)
+		go getbonuses.GetStatusFromAccural(userOrder.Order)
 	}
-
+	if checkOrder.Login != login && checkOrder.Order == orderNum {
+		return gophermarterrors.ErrAlreadyLoadedOrder
+	} else if checkOrder.Login == login && checkOrder.Order == orderNum {
+		return gophermarterrors.ErrYouAlreadyLoadedOrder
+	}
 	return nil
 }
 
@@ -194,7 +193,7 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 
 	err := db.NewSelect().
 		Model(checkOrder).
-		Where("order_number = ?", orderNum).
+		Where(`"order" = ?`, orderNum).
 		Scan(ctx)
 	if err != nil {
 		_, err := db.NewInsert().
