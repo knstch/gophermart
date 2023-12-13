@@ -133,7 +133,7 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]b
 
 	for rows.Next() {
 		var orderRow Order
-		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Time, &orderRow.Status, &orderRow.BonusesWithdrawn)
+		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Time, &orderRow.Status, &orderRow.BonusesWithdrawn, &orderRow.Accural)
 		if err != nil {
 			logger.ErrorLogger("Error scanning data: ", err)
 			return nil, err
