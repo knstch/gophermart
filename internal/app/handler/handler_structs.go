@@ -22,17 +22,18 @@ type Handler struct {
 	s Storage
 }
 
+// A builder function returning a Handler struct with Storage interface.
 func NewHandler(s Storage) *Handler {
 	return &Handler{s: s}
 }
 
-// A struct used to get and store data from json requests.
+// A struct used to get and store data from a json requests.
 type credentials struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
 }
 
-// A struct used to put data to json response
+// A struct used to put data to a json response
 type balanceInfo struct {
 	Balance   float32 `json:"balance"`
 	Withdrawn float32 `json:"withdrawn"`
@@ -41,6 +42,7 @@ type balanceInfo struct {
 // A variable made to check an error type using errors.As
 var pgErr *pgconn.PgError
 
+// A struct used to parse a json request to withdraw bonuses making an order.
 type getSpendBonusRequest struct {
 	Order string  `json:"order"`
 	Sum   float32 `json:"sum"`

@@ -19,6 +19,7 @@ type Order struct {
 	Time             string  `bun:"uploaded_at"`
 	Status           string  `bun:"status"`
 	BonusesWithdrawn float32 `bun:"bonuses_withdrawn"`
+	Accural          float32 `bun:"accural"`
 }
 
 // A struct used to convert data to JSON

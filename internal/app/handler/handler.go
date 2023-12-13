@@ -13,6 +13,7 @@ import (
 	cookielogin "github.com/knstch/gophermart/internal/app/middleware/cookieLogin"
 )
 
+// A handler used to sign up a user setting an auth cookie.
 func (h *Handler) SignUp(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -49,6 +50,7 @@ func (h *Handler) SignUp(res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte("Successfully registred"))
 }
 
+// A handler used to authenticate a user setting an auth cookie.
 func (h *Handler) Auth(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -86,6 +88,7 @@ func (h *Handler) Auth(res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte("Successfully signed in"))
 }
 
+// A handler used to upload a user's order.
 func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -118,6 +121,7 @@ func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte("Successfully loaded ordred"))
 }
 
+// A handler used to get all user's orders.
 func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
 	login := req.Context().Value(cookielogin.LoginKey).(string)
 
@@ -139,6 +143,7 @@ func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte(orders))
 }
 
+// A handler used to check user's balance.
 func (h *Handler) Balance(res http.ResponseWriter, req *http.Request) {
 	login := req.Context().Value(cookielogin.LoginKey).(string)
 
@@ -166,6 +171,7 @@ func (h *Handler) Balance(res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte(jsonUserBalance))
 }
 
+// A handler allowing a user to make an order using bonuses.
 func (h *Handler) WithdrawBonuses(res http.ResponseWriter, req *http.Request) {
 	login := req.Context().Value(cookielogin.LoginKey).(string)
 
@@ -208,6 +214,7 @@ func (h *Handler) WithdrawBonuses(res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte("Bonuses successfully spent"))
 }
 
+// A handler used to get all user's orders with spent bonuses.
 func (h *Handler) GetSpendOrderBonuses(res http.ResponseWriter, req *http.Request) {
 	login := req.Context().Value(cookielogin.LoginKey).(string)
 

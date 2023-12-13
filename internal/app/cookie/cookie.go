@@ -9,19 +9,19 @@ import (
 	"github.com/knstch/gophermart/internal/app/logger"
 )
 
+// A claim struct containing jwt.RegisteredClaims and Login
 type Claims struct {
 	jwt.RegisteredClaims
 	Login string
 }
 
+// A function building a JWT token and retrning this token and error.
 func buildJWTString(login string) (string, error) {
-	const secretKey = "aboba"
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"login": login,
 	})
 
-	tokenString, err := token.SignedString([]byte(secretKey))
+	tokenString, err := token.SignedString([]byte(config.ReadyConfig.SecretKey))
 	if err != nil {
 		logger.ErrorLogger("Error signing token: ", err)
 		return "", err
@@ -30,6 +30,7 @@ func buildJWTString(login string) (string, error) {
 	return tokenString, nil
 }
 
+// A functing setting an auth JWT token in cookies. It accepts http.ResponseWriter and login and returns an error.
 func SetAuth(res http.ResponseWriter, login string) error {
 	jwt, err := buildJWTString(login)
 	if err != nil {
@@ -47,10 +48,9 @@ func SetAuth(res http.ResponseWriter, login string) error {
 	return nil
 }
 
+// A function used to get a user's login using a JWT. It accepts a JWT and returns a login and error.
 func getLogin(tokenString string) (string, error) {
-	// создаём экземпляр структуры с утверждениями
 	claims := &Claims{}
-	// парсим из строки токена tokenString в структуру claims
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			logger.ErrorLogger("unexpected signing method", nil)
@@ -68,6 +68,7 @@ func getLogin(tokenString string) (string, error) {
 	return claims.Login, nil
 }
 
+// A function used to get a cookie and return a login and error.
 func GetCookie(req *http.Request) (string, error) {
 	signedLogin, err := req.Cookie("Auth")
 	if err != nil {

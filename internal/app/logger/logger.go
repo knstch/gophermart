@@ -2,7 +2,7 @@ package logger
 
 import "go.uber.org/zap"
 
-// Логер ошибки
+// An error logger accepting a message as a string and error.
 func ErrorLogger(msg string, serverErr error) {
 	var logger, err = zap.NewDevelopment()
 	if err != nil {
@@ -13,7 +13,7 @@ func ErrorLogger(msg string, serverErr error) {
 	sugar.Errorf("Error: %v\nDetails: %v\n", msg, serverErr)
 }
 
-// Информативный логгер
+// An info logger accepting message.
 func InfoLogger(msg string) {
 	var logger, err = zap.NewDevelopment()
 	if err != nil {

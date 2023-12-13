@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	getbonuses "github.com/knstch/gophermart/internal/app/getBonuses"
 	gophermarterrors "github.com/knstch/gophermart/internal/app/gophermartErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
 	validitycheck "github.com/knstch/gophermart/internal/app/validityCheck"
@@ -13,7 +14,7 @@ import (
 )
 
 // Register is used to add users to the database.
-// It accepts login and password, inserts them to the database,
+// It accepts context, login and password, inserts them to the database,
 // and returns an error.
 func (storage *PsqURLlStorage) Register(ctx context.Context, login string, password string) error {
 	credentials := &User{
@@ -35,7 +36,7 @@ func (storage *PsqURLlStorage) Register(ctx context.Context, login string, passw
 	return nil
 }
 
-// CheckCredentials accepts login and password, then check if
+// CheckCredentials accepts context, login and password, then check if
 // there is a match in the database. If nothing was found,
 // it returns error.
 func (storage *PsqURLlStorage) CheckCredentials(ctx context.Context, login string, password string) error {
@@ -56,7 +57,7 @@ func (storage *PsqURLlStorage) CheckCredentials(ctx context.Context, login strin
 }
 
 // InsertOrder is used to insert information about an order to
-// the database. It accepts login and order number and returns error.
+// the database. It accepts context, login and order number and returns error.
 // Before insering data, it checks the order number using Luhn algorithm,
 // if the number is wrong, it returns a custom error.
 func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, orderNum string) error {
@@ -68,6 +69,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 		Time:             now.Format(time.RFC3339),
 		Status:           "NEW",
 		BonusesWithdrawn: 0,
+		Accural:          0,
 	}
 
 	isValid := validitycheck.LuhnAlgorithm(orderNum)
@@ -89,20 +91,26 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 			Exec(ctx)
 
 		if err != nil {
+			if checkOrder.Login != login && checkOrder.Order == orderNum {
+				return gophermarterrors.ErrAlreadyLoadedOrder
+			} else if checkOrder.Login == login && checkOrder.Order == orderNum {
+				return gophermarterrors.ErrYouAlreadyLoadedOrder
+			}
 			logger.ErrorLogger("Error writing data: ", err)
 			return err
 		}
+
+		err = getbonuses.GetStatusFromAccural(userOrder.Order)
+		if err != nil {
+			logger.ErrorLogger("Error getting bonuses: ", err)
+		}
 		return nil
 	}
-	if checkOrder.Login != login && checkOrder.Order == orderNum {
-		return gophermarterrors.ErrAlreadyLoadedOrder
-	} else if checkOrder.Login == login && checkOrder.Order == orderNum {
-		return gophermarterrors.ErrYouAlreadyLoadedOrder
-	}
+
 	return nil
 }
 
-// GetOrders accepts login and returns an error and all user's orders
+// GetOrders accepts context, login and returns an error and all user's orders
 // ordered from old to new ones in json format.
 func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]byte, error) {
 	var allOrders []jsonOrder
@@ -145,7 +153,7 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]b
 	return jsonAllOrders, nil
 }
 
-// GetBalance accepts login and returns bonuses balance, withdraw
+// GetBalance accepts context and login, and returns bonuses balance, withdraw
 // amount, and error.
 func (storage *PsqURLlStorage) GetBalance(ctx context.Context, login string) (float32, float32, error) {
 	var user User
@@ -164,18 +172,14 @@ func (storage *PsqURLlStorage) GetBalance(ctx context.Context, login string) (fl
 	return user.Balance, user.Withdrawn, nil
 }
 
+// SpendBonuses accepts context, login, order number, and amount of bonuses to spend.
+// It allows to spend user's bonuses on an order.
+// This function returns error in an error case or nil if everything is good.
 func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, orderNum string, spendBonuses float32) error {
 	bonusesAvailable, _, nil := storage.GetBalance(ctx, login)
 	if bonusesAvailable < spendBonuses {
 		return gophermarterrors.ErrNotEnoughBalance
 	}
-
-	tx, err := storage.db.Begin()
-	if err != nil {
-		logger.ErrorLogger("Error making transaction: ", err)
-		return err
-	}
-	defer tx.Rollback()
 
 	db := bun.NewDB(storage.db, pgdialect.New())
 
@@ -189,9 +193,10 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 		Time:             now.Format(time.RFC3339),
 		Status:           "NEW",
 		BonusesWithdrawn: spendBonuses,
+		Accural:          0,
 	}
 
-	err = db.NewSelect().
+	err := db.NewSelect().
 		Model(checkOrder).
 		Where("order_number = ?", orderNum).
 		Scan(ctx)
@@ -221,15 +226,11 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 		return err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		logger.ErrorLogger("Error commiting transaction: ", err)
-		return err
-	}
-
 	return nil
 }
 
+// This function accepts context and login, and returns an error and json response with orders where a user
+// spent bonuses.
 func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login string) ([]byte, error) {
 	var allOrders []jsonOrder
 
