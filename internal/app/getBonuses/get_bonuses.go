@@ -148,7 +148,7 @@ func GetStatusFromAccural(order string) error {
 	logger.InfoLogger("Activated GetStatusFromAccural")
 	result := make(chan OrderUpdateFromAccural)
 
-	defer close(result)
+	// defer close(result)
 
 	for idx := 0; idx < 5; idx++ {
 		wg.Add(1)
