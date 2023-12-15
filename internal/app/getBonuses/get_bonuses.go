@@ -83,12 +83,18 @@ type Order struct {
 
 func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
 	fmt.Println("Acquaired works??: ", order.Accrual)
+	ord := Order{
+		Login:   login,
+		Order:   order.Order,
+		Status:  order.Status,
+		Accural: order.Accrual,
+	}
 	db := bun.NewDB(storage.db, pgdialect.New())
 	_, err := db.NewUpdate().
-		TableExpr("orders").
-		Set(`"status" = ?`, order.Status).
-		Set(`"accural" = ?`, order.Accrual).
-		Where(`"order" = ?`, order.Order).
+		Model(ord).
+		Set(`status = ?`, ord.Status).
+		Set(`accural = ?`, ord.Accural).
+		Where(`order = ?`, ord.Order).
 		Exec(ctx)
 	if err != nil {
 		logger.ErrorLogger("Error withdrawning bonuses from the account: ", err)
