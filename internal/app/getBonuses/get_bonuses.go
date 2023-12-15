@@ -172,14 +172,11 @@ func GetStatusFromAccural(order string, login string) {
 	defer close(OrderJob)
 
 	go func() {
-		orderToUpdate := <-result
-
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
-		updater.s.UpdateStatus(ctx, orderToUpdate, login)
-
-		cancel()
-
+		for orderToUpdate := range result {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			updater.s.UpdateStatus(ctx, orderToUpdate, login)
+			cancel()
+		}
 	}()
 
 	wg.Wait()
