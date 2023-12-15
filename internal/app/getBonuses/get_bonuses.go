@@ -3,6 +3,7 @@ package getbonuses
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"sync"
 	"time"
 
@@ -72,6 +73,7 @@ func (s *Semaphore) Release() {
 }
 
 func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural) error {
+	fmt.Println("Acquaired: ", order.Accrual)
 	db := bun.NewDB(storage.db, pgdialect.New())
 	_, err := db.NewUpdate().
 		TableExpr("orders").
