@@ -126,11 +126,7 @@ func GetStatusFromAccural(order string, login string) {
 
 			client := resty.New().SetBaseURL(config.ReadyConfig.Accural)
 			job := <-jobs
-			lastResult := OrderUpdateFromAccural{
-				Order:   job.Order,
-				Status:  "NEW",
-				Accrual: 0,
-			}
+			lastResult := OrderUpdateFromAccural{}
 			for {
 				var orderUpdate OrderUpdateFromAccural
 
