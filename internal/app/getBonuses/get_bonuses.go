@@ -88,7 +88,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		TableExpr("orders").
 		Set("status = ?", order.Status).
 		Set("accural = ?", order.Accrual).
-		Where(`order = ?`, order.Order).
+		Where(`"order" = ?`, order.Order).
 		Exec(ctx)
 	if err != nil {
 		logger.ErrorLogger("Error withdrawning bonuses from the account: ", err)
