@@ -142,8 +142,7 @@ func GetStatusFromAccural(order string, login string) {
 				case 429:
 					time.Sleep(3 * time.Second)
 				case 204:
-					logger.InfoLogger("Status 204 from accural system")
-					time.Sleep(3 * time.Second)
+					time.Sleep(1 * time.Second)
 				}
 
 				if resp.StatusCode() == 500 {
@@ -154,7 +153,7 @@ func GetStatusFromAccural(order string, login string) {
 					lastResult = orderUpdate
 					result <- lastResult
 				}
-
+				fmt.Println("Order status: ", orderUpdate.Status)
 				if orderUpdate.Status == "INVALID" || orderUpdate.Status == "PROCESSED" {
 					break
 				}
