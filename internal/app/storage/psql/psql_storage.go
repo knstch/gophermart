@@ -137,8 +137,11 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]b
 			logger.ErrorLogger("Error scanning data: ", err)
 			return nil, err
 		}
+
+		stringOrder := strconv.Itoa(orderRow.Number)
+
 		allOrders = append(allOrders, jsonOrder{
-			Order:  orderRow.Number,
+			Order:  stringOrder,
 			Time:   orderRow.Time,
 			Status: orderRow.Status,
 		})
@@ -263,8 +266,11 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 			logger.ErrorLogger("Error scanning data: ", err)
 			return nil, err
 		}
+
+		stringOrder := strconv.Itoa(orderRow.Number)
+
 		allOrders = append(allOrders, jsonOrder{
-			Order:        orderRow.Number,
+			Order:        stringOrder,
 			Time:         orderRow.Time,
 			SpentBonuses: orderRow.BonusesWithdrawn,
 		})

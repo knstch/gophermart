@@ -24,7 +24,7 @@ type Order struct {
 
 // A struct used to convert data to JSON
 type jsonOrder struct {
-	Order        int     `json:"number"`
+	Order        string  `json:"number"`
 	Time         string  `json:"uploaded_at"`
 	Status       string  `json:"status"`
 	SpentBonuses float32 `json:"sum"`
