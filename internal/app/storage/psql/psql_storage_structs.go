@@ -22,14 +22,6 @@ type Order struct {
 	Accural          float32 `bun:"accural" json:"-"`
 }
 
-// // A struct used to convert data to JSON
-// type jsonOrder struct {
-// 	Order        string  `json:"number"`
-// 	Time         string  `json:"uploaded_at"`
-// 	Status       string  `json:"status"`
-// 	SpentBonuses float32 `json:"sum"`
-// }
-
 // A struct designed to initialize users table in the database
 type Users struct {
 	Login     string  `bun:"type:varchar(255),unique"`

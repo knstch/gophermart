@@ -85,7 +85,6 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 		Model(&checkOrder).
 		Where(`"order" = ?`, orderNum).
 		Scan(ctx)
-	logger.ErrorLogger("Errorrrrrrrr: ", err)
 	if err != nil {
 		_, err := db.NewInsert().
 			Model(userOrder).
