@@ -113,7 +113,7 @@ func GetStatusFromAccural(order string) {
 			defer wg.Done()
 			defer semaphore.Release()
 
-			client := resty.New()
+			client := resty.New().SetBaseURL(config.ReadyConfig.Accural)
 			job := <-jobs
 			lastResult := OrderUpdateFromAccural{
 				Order:   job.Order,
@@ -122,9 +122,10 @@ func GetStatusFromAccural(order string) {
 			}
 			for {
 				var orderUpdate OrderUpdateFromAccural
+
 				resp, err := client.R().
 					SetResult(&orderUpdate).
-					Get(config.ReadyConfig.Accural + "/api/orders/" + job.Order)
+					Get("/api/orders/" + job.Order)
 				if err != nil {
 					logger.ErrorLogger("Got error trying to send a get request from worker: ", err)
 					break
