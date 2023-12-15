@@ -23,7 +23,7 @@ type StatusUpdater struct {
 }
 
 type OrderUpdateFromAccural struct {
-	Order   int     `json:"order"`
+	Order   string  `json:"order"`
 	Status  string  `json:"status"`
 	Accrual float32 `json:"accrual"`
 }
@@ -118,7 +118,7 @@ func GetStatusFromAccural(order int) {
 			job := <-jobs
 			logger.InfoLogger("Activated worker")
 			lastResult := OrderUpdateFromAccural{
-				Order:   job.Order,
+				Order:   strconv.Itoa(job.Order),
 				Status:  "NEW",
 				Accrual: 0,
 			}
