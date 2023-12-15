@@ -86,8 +86,9 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	db := bun.NewDB(storage.db, pgdialect.New())
 	_, err := db.NewUpdate().
 		TableExpr("orders").
-		Set(`"status" = ?, "accural" = ?`, order.Status, order.Accrual).
-		Where(`"order" = ?`, order.Order).
+		Set("status = ?", order.Status).
+		Set("accural = ?", order.Accrual).
+		Where(`order = ?`, order.Order).
 		Exec(ctx)
 	if err != nil {
 		logger.ErrorLogger("Error withdrawning bonuses from the account: ", err)
