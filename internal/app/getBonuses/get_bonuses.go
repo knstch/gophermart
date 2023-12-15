@@ -3,7 +3,6 @@ package getbonuses
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"sync"
 	"time"
 
@@ -152,8 +151,6 @@ func GetStatusFromAccural(order string) {
 				if orderUpdate.Status == "INVALID" || orderUpdate.Status == "PROCESSED" {
 					break
 				}
-
-				fmt.Println("Response from server: ", resp.StatusCode())
 
 				time.Sleep(250 * time.Millisecond)
 			}

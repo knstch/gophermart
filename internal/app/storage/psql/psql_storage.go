@@ -65,7 +65,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 
 	userOrder := &Order{
 		Login:            login,
-		Number:           orderNum,
+		Order:            orderNum,
 		Time:             now.Format(time.RFC3339),
 		Status:           "NEW",
 		BonusesWithdrawn: 0,
@@ -95,11 +95,11 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 			return err
 		}
 
-		go getbonuses.GetStatusFromAccural(userOrder.Number)
+		go getbonuses.GetStatusFromAccural(userOrder.Order)
 	}
-	if checkOrder.Login != login && checkOrder.Number == orderNum {
+	if checkOrder.Login != login && checkOrder.Order == orderNum {
 		return gophermarterrors.ErrAlreadyLoadedOrder
-	} else if checkOrder.Login == login && checkOrder.Number == orderNum {
+	} else if checkOrder.Login == login && checkOrder.Order == orderNum {
 		return gophermarterrors.ErrYouAlreadyLoadedOrder
 	}
 	return nil
@@ -128,14 +128,14 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]b
 
 	for rows.Next() {
 		var orderRow Order
-		err := rows.Scan(&orderRow.Login, &orderRow.Number, &orderRow.Time, &orderRow.Status, &orderRow.BonusesWithdrawn, &orderRow.Accural)
+		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Time, &orderRow.Status, &orderRow.BonusesWithdrawn, &orderRow.Accural)
 		if err != nil {
 			logger.ErrorLogger("Error scanning data: ", err)
 			return nil, err
 		}
 
 		allOrders = append(allOrders, Order{
-			Number: orderRow.Number,
+			Order:  orderRow.Order,
 			Time:   orderRow.Time,
 			Status: orderRow.Status,
 		})
@@ -185,7 +185,7 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 
 	userOrder := &Order{
 		Login:            login,
-		Number:           orderNum,
+		Order:            orderNum,
 		Time:             now.Format(time.RFC3339),
 		Status:           "NEW",
 		BonusesWithdrawn: spendBonuses,
@@ -206,9 +206,9 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 			return err
 		}
 	}
-	if checkOrder.Login != login && checkOrder.Number == orderNum {
+	if checkOrder.Login != login && checkOrder.Order == orderNum {
 		return gophermarterrors.ErrAlreadyLoadedOrder
-	} else if checkOrder.Login == login && checkOrder.Number == orderNum {
+	} else if checkOrder.Login == login && checkOrder.Order == orderNum {
 		return gophermarterrors.ErrYouAlreadyLoadedOrder
 	}
 
@@ -250,14 +250,14 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 	for rows.Next() {
 		noRows = false
 		var orderRow Order
-		err := rows.Scan(&orderRow.Login, &orderRow.Number, &orderRow.Time, &orderRow.Status, &orderRow.BonusesWithdrawn, &orderRow.Accural)
+		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Time, &orderRow.Status, &orderRow.BonusesWithdrawn, &orderRow.Accural)
 		if err != nil {
 			logger.ErrorLogger("Error scanning data: ", err)
 			return nil, err
 		}
 
 		allOrders = append(allOrders, Order{
-			Number:           orderRow.Number,
+			Order:            orderRow.Order,
 			Time:             orderRow.Time,
 			BonusesWithdrawn: orderRow.BonusesWithdrawn,
 		})

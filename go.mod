@@ -19,6 +19,7 @@ require (
 )
 
 require (
+	github.com/go-chi/chi v1.5.5
 	github.com/go-resty/resty/v2 v2.10.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
