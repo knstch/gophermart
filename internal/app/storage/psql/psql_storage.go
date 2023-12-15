@@ -89,7 +89,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 		_, err := db.NewInsert().
 			Model(userOrder).
 			Exec(ctx)
-
+		go getbonuses.GetStatusFromAccural(userOrder.Order, login)
 		if err != nil {
 			logger.ErrorLogger("Error writing data: ", err)
 			return err
@@ -101,8 +101,6 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 	} else if checkOrder.Login == login && checkOrder.Order == orderNum {
 		return gophermarterrors.ErrYouAlreadyLoadedOrder
 	}
-
-	go getbonuses.GetStatusFromAccural(userOrder.Order, login)
 
 	return nil
 }
