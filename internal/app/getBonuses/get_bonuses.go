@@ -95,7 +95,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	}
 
 	var orderPosted Order
-	_, err = db.NewSelect().Model(&orderPosted).Where(`"order" = ?`, order.Order).Exec()
+	_, err = db.NewSelect().Model(&orderPosted).Where(`"order" = ?`, order.Order).Exec(ctx)
 	if err != nil {
 		logger.ErrorLogger("Error checking order: ", err)
 		return err
