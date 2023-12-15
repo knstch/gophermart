@@ -86,8 +86,8 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	}
 	_, err = db.NewUpdate().
 		TableExpr("users").
-		Set(`"balance" = "balance" + ?`, order.Accrual).
-		Where(`"login" = ?`, login).
+		Set(`balance = balance + ?`, order.Accrual).
+		Where(`login = ?`, login).
 		Exec(ctx)
 	if err != nil {
 		logger.ErrorLogger("Error topping up the balance: ", err)
