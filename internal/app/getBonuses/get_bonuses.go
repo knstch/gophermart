@@ -137,6 +137,7 @@ func GetStatusFromAccural(order string, login string) {
 					logger.ErrorLogger("Got error trying to send a get request from worker: ", err)
 					break
 				}
+				fmt.Println("Resp status code: ", resp.StatusCode())
 				switch resp.StatusCode() {
 				case 429:
 					time.Sleep(3 * time.Second)
@@ -149,7 +150,6 @@ func GetStatusFromAccural(order string, login string) {
 					logger.ErrorLogger("Internal server error in accural system: ", err)
 					break
 				}
-				fmt.Println("Resp status code: ", resp.StatusCode())
 				if orderUpdate != lastResult {
 					lastResult = orderUpdate
 					result <- lastResult
