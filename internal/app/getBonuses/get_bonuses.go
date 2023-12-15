@@ -86,7 +86,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	}
 	_, err = db.NewUpdate().
 		TableExpr("users").
-		Set(`balance = balance + ?`, order.Accrual).
+		Set(`"balance" = ?`, order.Accrual).
 		Where(`login = ?`, login).
 		Exec(ctx)
 	if err != nil {
