@@ -13,7 +13,6 @@ func RequestsRouter(h *handler.Handler) chi.Router {
 	router.Use(
 		statuslogger.WithLogger,
 		compressor.WithCompressor,
-		cookielogin.WithCookieLogin,
 	)
 	router.Route("/", func(router chi.Router) {
 		router.Route("/api", func(router chi.Router) {
@@ -22,6 +21,7 @@ func RequestsRouter(h *handler.Handler) chi.Router {
 				router.Post("/login", h.Auth)
 				router.Get("/api/user/withdrawals", h.GetSpendOrderBonuses)
 				router.Group(func(router chi.Router) {
+					router.Use(cookielogin.WithCookieLogin)
 					router.Route("/orders", func(router chi.Router) {
 						router.Post("/", h.UploadOrder)
 						router.Get("/", h.GetOrders)
