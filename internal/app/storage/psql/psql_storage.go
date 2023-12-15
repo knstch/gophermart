@@ -258,7 +258,7 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 	for rows.Next() {
 		noRows = false
 		var orderRow Order
-		err := rows.Scan(&orderRow.Login, &orderRow.Number, &orderRow.Time, &orderRow.Status, &orderRow.BonusesWithdrawn)
+		err := rows.Scan(&orderRow.Login, &orderRow.Number, &orderRow.Time, &orderRow.Status, &orderRow.BonusesWithdrawn, &orderRow.Accural)
 		if err != nil {
 			logger.ErrorLogger("Error scanning data: ", err)
 			return nil, err
