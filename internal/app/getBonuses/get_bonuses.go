@@ -117,7 +117,7 @@ func GetStatusFromAccural(order string, login string) {
 
 	for idx := 0; idx < 5; idx++ {
 		wg.Add(1)
-
+		fmt.Println("Launched a worker #", idx)
 		go func(jobs <-chan OrderToAccuralSys, result chan<- OrderUpdateFromAccural) {
 
 			semaphore.Acquire()
