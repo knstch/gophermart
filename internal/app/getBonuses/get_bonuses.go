@@ -3,6 +3,7 @@ package getbonuses
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"sync"
 	"time"
 
@@ -125,7 +126,7 @@ func GetStatusFromAccural(order string) {
 
 				resp, err := client.R().
 					SetResult(&orderUpdate).
-					Get("/api/orders/" + job.Order)
+					Get(fmt.Sprintf("/api/orders/%s", job.Order))
 				if err != nil {
 					logger.ErrorLogger("Got error trying to send a get request from worker: ", err)
 					break
