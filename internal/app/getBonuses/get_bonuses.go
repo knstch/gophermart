@@ -77,7 +77,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	db := bun.NewDB(storage.db, pgdialect.New())
 	_, err := db.NewUpdate().
 		TableExpr("orders").
-		Set(`"status" = ?, "accural" = ?`, order.Status, order.Accrual).
+		Set(`status = ?, accural = ?`, order.Status, order.Accrual).
 		Where(`"order" = ?`, order.Order).
 		Exec(ctx)
 	if err != nil {
@@ -86,8 +86,8 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	}
 	_, err = db.NewUpdate().
 		TableExpr("users").
-		Set(`"balance" = ?`, order.Accrual).
-		Where(`login = ?`, login).
+		Set(`balance = ?`, order.Accrual).
+		Where(`"login" = ?`, login).
 		Exec(ctx)
 	if err != nil {
 		logger.ErrorLogger("Error topping up the balance: ", err)
