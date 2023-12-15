@@ -86,7 +86,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	db := bun.NewDB(storage.db, pgdialect.New())
 	_, err := db.NewUpdate().
 		TableExpr("orders").
-		Set(`status = ?, accural = ?`, order.Status, order.Accrual).
+		Set(`"status" = ?, "accural" = ?`, order.Status, order.Accrual).
 		Where(`"order" = ?`, order.Order).
 		Exec(ctx)
 	if err != nil {
