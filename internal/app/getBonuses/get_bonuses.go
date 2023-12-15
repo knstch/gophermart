@@ -73,7 +73,7 @@ func (s *Semaphore) Release() {
 }
 
 func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
-	fmt.Println("Acquaired works?: ", order.Accrual)
+	fmt.Println("Acquaired works??: ", order.Accrual)
 	db := bun.NewDB(storage.db, pgdialect.New())
 	_, err := db.NewUpdate().
 		TableExpr("orders").
