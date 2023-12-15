@@ -28,7 +28,7 @@ func RequestsRouter(h *handler.Handler) chi.Router {
 					})
 					router.Route("/balance", func(router chi.Router) {
 						router.Get("/", h.Balance)
-						router.Get("/withdraw", h.WithdrawBonuses)
+						router.Post("/withdraw", h.WithdrawBonuses)
 					})
 				})
 			})
