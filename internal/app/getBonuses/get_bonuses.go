@@ -3,6 +3,7 @@ package getbonuses
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"sync"
 	"time"
 
@@ -162,9 +163,8 @@ func GetStatusFromAccural(order string) {
 	defer close(OrderJob)
 
 	go func() {
-
 		orderToUpdate := <-result
-
+		fmt.Println("Accuraled: ", orderToUpdate.Accrual)
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 		updater.s.UpdateStatus(ctx, orderToUpdate)
