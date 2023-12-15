@@ -126,7 +126,7 @@ func GetStatusFromAccural(order string) {
 
 				resp, err := client.R().
 					SetResult(&orderUpdate).
-					Get(fmt.Sprintf("/api/orders/%s", job.Order))
+					Get("/api/orders/" + job.Order)
 				if err != nil {
 					logger.ErrorLogger("Got error trying to send a get request from worker: ", err)
 					break
@@ -152,6 +152,8 @@ func GetStatusFromAccural(order string) {
 				if orderUpdate.Status == "INVALID" || orderUpdate.Status == "PROCESSED" {
 					break
 				}
+
+				fmt.Println("Response from server: ", resp.StatusCode())
 
 				time.Sleep(250 * time.Millisecond)
 			}
