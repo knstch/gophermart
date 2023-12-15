@@ -153,7 +153,7 @@ func GetStatusFromAccural(order string, login string) {
 					logger.ErrorLogger("Internal server error in accural system: ", err)
 					break
 				}
-
+				fmt.Println("Resp status code: ", resp.StatusCode())
 				if orderUpdate != lastResult {
 					lastResult = orderUpdate
 					result <- lastResult
