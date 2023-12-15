@@ -101,7 +101,7 @@ func GetStatusFromAccural(order string, login string) {
 	if err != nil {
 		logger.ErrorLogger("Error setting the connection with the database: ", err)
 	}
-
+	fmt.Println("GetStatusFromAccural works")
 	storage := NewPsqlStorage(db)
 	updater := NewStatusUpdater(storage)
 
