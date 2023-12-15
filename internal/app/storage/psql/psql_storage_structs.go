@@ -15,7 +15,7 @@ type User struct {
 // A struct designed to insert login and order number to orders table
 type Order struct {
 	Login            string  `bun:"login"`
-	Number           int     `bun:"number"`
+	Number           string  `bun:"number"`
 	Time             string  `bun:"uploaded_at"`
 	Status           string  `bun:"status"`
 	BonusesWithdrawn float32 `bun:"bonuses_withdrawn"`
@@ -41,7 +41,7 @@ type Users struct {
 // A struct designed to initialize orders table in the database
 type Orders struct {
 	Login            string  `bun:"type:varchar(255)"`
-	Number           int     `bun:"type:bigint,unique"`
+	Number           string  `bun:"type:varchar(255),unique"`
 	Status           string  `bun:"type:varchar(255)"`
 	UploadedAt       string  `bun:"type:timestamp"`
 	BonusesWithdrawn float32 `bun:"type:float"`

@@ -3,7 +3,6 @@ package psql
 import (
 	"context"
 	"encoding/json"
-	"strconv"
 	"time"
 
 	getbonuses "github.com/knstch/gophermart/internal/app/getBonuses"
@@ -63,13 +62,10 @@ func (storage *PsqURLlStorage) CheckCredentials(ctx context.Context, login strin
 // if the number is wrong, it returns a custom error.
 func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, orderNum string) error {
 	now := time.Now()
-	intOrder, err := strconv.Atoi(orderNum)
-	if err != nil {
-		logger.ErrorLogger("Error converting order number to int", err)
-	}
+
 	userOrder := &Order{
 		Login:            login,
-		Number:           intOrder,
+		Number:           orderNum,
 		Time:             now.Format(time.RFC3339),
 		Status:           "NEW",
 		BonusesWithdrawn: 0,
@@ -85,7 +81,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 
 	var checkOrder Order
 
-	err = db.NewSelect().
+	err := db.NewSelect().
 		Model(&checkOrder).
 		Where(`"number" = ?`, orderNum).
 		Scan(ctx)
@@ -101,9 +97,9 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 
 		go getbonuses.GetStatusFromAccural(userOrder.Number)
 	}
-	if checkOrder.Login != login && checkOrder.Number == intOrder {
+	if checkOrder.Login != login && checkOrder.Number == orderNum {
 		return gophermarterrors.ErrAlreadyLoadedOrder
-	} else if checkOrder.Login == login && checkOrder.Number == intOrder {
+	} else if checkOrder.Login == login && checkOrder.Number == orderNum {
 		return gophermarterrors.ErrYouAlreadyLoadedOrder
 	}
 	return nil
@@ -138,10 +134,8 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]b
 			return nil, err
 		}
 
-		stringOrder := strconv.Itoa(orderRow.Number)
-
 		allOrders = append(allOrders, jsonOrder{
-			Order:  stringOrder,
+			Order:  orderRow.Number,
 			Time:   orderRow.Time,
 			Status: orderRow.Status,
 		})
@@ -189,21 +183,16 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 
 	now := time.Now()
 
-	intOrder, err := strconv.Atoi(orderNum)
-	if err != nil {
-		logger.ErrorLogger("Error converting order number to int", err)
-	}
-
 	userOrder := &Order{
 		Login:            login,
-		Number:           intOrder,
+		Number:           orderNum,
 		Time:             now.Format(time.RFC3339),
 		Status:           "NEW",
 		BonusesWithdrawn: spendBonuses,
 		Accural:          0,
 	}
 
-	err = db.NewSelect().
+	err := db.NewSelect().
 		Model(checkOrder).
 		Where(`"number" = ?`, orderNum).
 		Scan(ctx)
@@ -217,9 +206,9 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 			return err
 		}
 	}
-	if checkOrder.Login != login && checkOrder.Number == intOrder {
+	if checkOrder.Login != login && checkOrder.Number == orderNum {
 		return gophermarterrors.ErrAlreadyLoadedOrder
-	} else if checkOrder.Login == login && checkOrder.Number == intOrder {
+	} else if checkOrder.Login == login && checkOrder.Number == orderNum {
 		return gophermarterrors.ErrYouAlreadyLoadedOrder
 	}
 
@@ -267,10 +256,8 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 			return nil, err
 		}
 
-		stringOrder := strconv.Itoa(orderRow.Number)
-
 		allOrders = append(allOrders, jsonOrder{
-			Order:        stringOrder,
+			Order:        orderRow.Number,
 			Time:         orderRow.Time,
 			SpentBonuses: orderRow.BonusesWithdrawn,
 		})
