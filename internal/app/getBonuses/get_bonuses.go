@@ -173,6 +173,7 @@ func GetStatusFromAccural(order string, login string) {
 
 	go func() {
 		for orderToUpdate := range result {
+			fmt.Println("Triggered result chan", orderToUpdate.Accrual)
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			updater.s.UpdateStatus(ctx, orderToUpdate, login)
 			cancel()
