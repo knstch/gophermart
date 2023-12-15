@@ -72,6 +72,15 @@ func (s *Semaphore) Release() {
 	<-s.semaCh
 }
 
+type Order struct {
+	Login            string  `bun:"login" json:"-"`
+	Order            string  `bun:"order" json:"order"`
+	Time             string  `bun:"uploaded_at" json:"uploaded_at"`
+	Status           string  `bun:"status" json:"status"`
+	BonusesWithdrawn float32 `bun:"bonuses_withdrawn" json:"sum"`
+	Accural          float32 `bun:"accural" json:"-"`
+}
+
 func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
 	fmt.Println("Acquaired works??: ", order.Accrual)
 	db := bun.NewDB(storage.db, pgdialect.New())
@@ -84,6 +93,15 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		logger.ErrorLogger("Error withdrawning bonuses from the account: ", err)
 		return err
 	}
+
+	var orderPosted Order
+	_, err = db.NewSelect().Model(&orderPosted).Where(`"order" = ?`, order.Order).Exec()
+	if err != nil {
+		logger.ErrorLogger("Error checking order: ", err)
+		return err
+	}
+	fmt.Println("Order after post ", orderPosted.Accural)
+
 	_, err = db.NewUpdate().
 		TableExpr("users").
 		Set(`balance = ?`, order.Accrual).
@@ -117,7 +135,6 @@ func GetStatusFromAccural(order string, login string) {
 
 	for idx := 0; idx < 5; idx++ {
 		wg.Add(1)
-		fmt.Println("Launched a worker #", idx)
 		go func(jobs <-chan OrderToAccuralSys, result chan<- OrderUpdateFromAccural) {
 
 			semaphore.Acquire()
