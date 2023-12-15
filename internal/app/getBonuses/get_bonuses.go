@@ -153,7 +153,7 @@ func GetStatusFromAccural(order string) {
 				if orderUpdate.Status == "INVALID" || orderUpdate.Status == "PROCESSED" {
 					break
 				}
-
+				fmt.Println("STATUS CODE: ", resp.StatusCode())
 				time.Sleep(250 * time.Millisecond)
 			}
 
