@@ -13,7 +13,7 @@ type Storage interface {
 	InsertOrder(ctx context.Context, login string, order string) error
 	GetOrders(ctx context.Context, login string) ([]byte, error)
 	GetBalance(ctx context.Context, login string) (float32, float32, error)
-	SpendBonuses(ctx context.Context, login string, orderNum string, spendBonuses float32) error
+	SpendBonuses(ctx context.Context, login string, orderNum int, spendBonuses float32) error
 	GetOrdersWithBonuses(ctx context.Context, login string) ([]byte, error)
 }
 
@@ -44,6 +44,6 @@ var pgErr *pgconn.PgError
 
 // A struct used to parse a json request to withdraw bonuses making an order.
 type getSpendBonusRequest struct {
-	Order string  `json:"order"`
+	Order int     `json:"order"`
 	Sum   float32 `json:"sum"`
 }

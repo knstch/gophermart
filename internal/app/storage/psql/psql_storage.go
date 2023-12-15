@@ -174,7 +174,7 @@ func (storage *PsqURLlStorage) GetBalance(ctx context.Context, login string) (fl
 // SpendBonuses accepts context, login, order number, and amount of bonuses to spend.
 // It allows to spend user's bonuses on an order.
 // This function returns error in an error case or nil if everything is good.
-func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, orderNum string, spendBonuses float32) error {
+func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, orderNum int, spendBonuses float32) error {
 	bonusesAvailable, _, nil := storage.GetBalance(ctx, login)
 	if bonusesAvailable < spendBonuses {
 		return gophermarterrors.ErrNotEnoughBalance
@@ -186,21 +186,16 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 
 	now := time.Now()
 
-	intOrder, err := strconv.Atoi(orderNum)
-	if err != nil {
-		logger.ErrorLogger("Error converting order number to int", err)
-	}
-
 	userOrder := &Order{
 		Login:            login,
-		Number:           intOrder,
+		Number:           orderNum,
 		Time:             now.Format(time.RFC3339),
 		Status:           "NEW",
 		BonusesWithdrawn: spendBonuses,
 		Accural:          0,
 	}
 
-	err = db.NewSelect().
+	err := db.NewSelect().
 		Model(checkOrder).
 		Where(`"number" = ?`, orderNum).
 		Scan(ctx)
@@ -214,9 +209,9 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 			return err
 		}
 	}
-	if checkOrder.Login != login && checkOrder.Number == intOrder {
+	if checkOrder.Login != login && checkOrder.Number == orderNum {
 		return gophermarterrors.ErrAlreadyLoadedOrder
-	} else if checkOrder.Login == login && checkOrder.Number == intOrder {
+	} else if checkOrder.Login == login && checkOrder.Number == orderNum {
 		return gophermarterrors.ErrYouAlreadyLoadedOrder
 	}
 
