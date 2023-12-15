@@ -95,13 +95,15 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 			return err
 		}
 
-		go getbonuses.GetStatusFromAccural(userOrder.Order)
 	}
 	if checkOrder.Login != login && checkOrder.Order == orderNum {
 		return gophermarterrors.ErrAlreadyLoadedOrder
 	} else if checkOrder.Login == login && checkOrder.Order == orderNum {
 		return gophermarterrors.ErrYouAlreadyLoadedOrder
 	}
+
+	go getbonuses.GetStatusFromAccural(userOrder.Order, login)
+
 	return nil
 }
 

@@ -15,7 +15,7 @@ import (
 )
 
 type Storage interface {
-	UpdateStatus(ctx context.Context, order OrderUpdateFromAccural) error
+	UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error
 }
 
 type StatusUpdater struct {
@@ -72,7 +72,7 @@ func (s *Semaphore) Release() {
 	<-s.semaCh
 }
 
-func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural) error {
+func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
 	fmt.Println("Acquaired: ", order.Accrual)
 	db := bun.NewDB(storage.db, pgdialect.New())
 	_, err := db.NewUpdate().
@@ -84,10 +84,19 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		logger.ErrorLogger("Error withdrawning bonuses from the account: ", err)
 		return err
 	}
+	_, err = db.NewUpdate().
+		TableExpr("users").
+		Set(`"balance" = "balance" + ?`, order.Accrual).
+		Where(`"login" = ?`, login).
+		Exec(ctx)
+	if err != nil {
+		logger.ErrorLogger("Error topping up the balance: ", err)
+		return err
+	}
 	return nil
 }
 
-func GetStatusFromAccural(order string) {
+func GetStatusFromAccural(order string, login string) {
 	db, err := sql.Open("pgx", config.ReadyConfig.Database)
 	if err != nil {
 		logger.ErrorLogger("Error setting the connection with the database: ", err)
@@ -153,7 +162,6 @@ func GetStatusFromAccural(order string) {
 				if orderUpdate.Status == "INVALID" || orderUpdate.Status == "PROCESSED" {
 					break
 				}
-				fmt.Println("STATUS CODE: ", resp.StatusCode())
 				time.Sleep(250 * time.Millisecond)
 			}
 
@@ -168,7 +176,7 @@ func GetStatusFromAccural(order string) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
-		updater.s.UpdateStatus(ctx, orderToUpdate)
+		updater.s.UpdateStatus(ctx, orderToUpdate, login)
 
 		cancel()
 
