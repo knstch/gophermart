@@ -73,6 +73,7 @@ func (s *Semaphore) Release() {
 }
 
 func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural) error {
+	fmt.Println("Accuraled: ", order.Accrual)
 	db := bun.NewDB(storage.db, pgdialect.New())
 	_, err := db.NewUpdate().
 		TableExpr("orders").
@@ -164,7 +165,7 @@ func GetStatusFromAccural(order string) {
 
 	go func() {
 		orderToUpdate := <-result
-		fmt.Println("Accuraled: ", orderToUpdate.Accrual)
+
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 		updater.s.UpdateStatus(ctx, orderToUpdate)
