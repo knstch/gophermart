@@ -115,11 +115,11 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 }
 
 func GetStatusFromAccural(order string, login string) {
+	fmt.Println("GetStatusFromAccural works")
 	db, err := sql.Open("pgx", config.ReadyConfig.Database)
 	if err != nil {
 		logger.ErrorLogger("Error setting the connection with the database: ", err)
 	}
-	fmt.Println("GetStatusFromAccural works")
 	storage := NewPsqlStorage(db)
 	updater := NewStatusUpdater(storage)
 

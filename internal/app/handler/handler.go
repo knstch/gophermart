@@ -117,7 +117,7 @@ func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 		res.Write([]byte("Wrong order number"))
 		return
 	}
-	getbonuses.GetStatusFromAccural(orderNum, login)
+	go getbonuses.GetStatusFromAccural(orderNum, login)
 	res.WriteHeader(202)
 	res.Write([]byte("Successfully loaded ordred"))
 }
