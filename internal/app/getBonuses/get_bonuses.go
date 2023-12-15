@@ -91,7 +91,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	}
 	db := bun.NewDB(storage.db, pgdialect.New())
 	_, err := db.NewUpdate().
-		Model(ord).
+		Model(&ord).
 		Set(`status = ?`, ord.Status).
 		Set(`accural = ?`, ord.Accural).
 		Where(`order = ?`, ord.Order).
