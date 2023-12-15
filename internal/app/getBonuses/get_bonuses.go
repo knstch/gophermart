@@ -100,7 +100,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		logger.ErrorLogger("Error checking order: ", err)
 		return err
 	}
-	fmt.Println("Order after post ", orderPosted.Accural)
+	fmt.Println("Order after post! ", orderPosted.Accural)
 
 	_, err = db.NewUpdate().
 		TableExpr("users").
