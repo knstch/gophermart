@@ -83,7 +83,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 
 	err := db.NewSelect().
 		Model(&checkOrder).
-		Where(`"number" = ?`, orderNum).
+		Where(`"order" = ?`, orderNum).
 		Scan(ctx)
 	if err != nil {
 		_, err := db.NewInsert().
@@ -194,7 +194,7 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 
 	err := db.NewSelect().
 		Model(checkOrder).
-		Where(`"number" = ?`, orderNum).
+		Where(`"order" = ?`, orderNum).
 		Scan(ctx)
 	if err != nil {
 		_, err := db.NewInsert().
