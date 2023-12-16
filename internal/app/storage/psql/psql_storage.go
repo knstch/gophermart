@@ -90,7 +90,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 		_, err := db.NewInsert().
 			Model(userOrder).
 			Exec(ctx)
-			go getbonuses.GetStatusFromAccural(orderNum, login)
+		getbonuses.GetStatusFromAccural(orderNum, login)
 		if err != nil {
 			logger.ErrorLogger("Error writing data: ", err)
 			return err
