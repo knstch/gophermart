@@ -62,11 +62,14 @@ func (storage *PsqURLlStorage) CheckCredentials(ctx context.Context, login strin
 func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, orderNum string) error {
 	now := time.Now()
 
+	bonusesWithdrawn := float32(0)
+
 	userOrder := &Order{
-		Login:      login,
-		Order:      orderNum,
-		UploadedAt: now.Format(time.RFC3339),
-		Status:     "NEW",
+		Login:            login,
+		Order:            orderNum,
+		UploadedAt:       now.Format(time.RFC3339),
+		Status:           "NEW",
+		BonusesWithdrawn: &bonusesWithdrawn,
 	}
 
 	isValid := validitycheck.LuhnAlgorithm(orderNum)
