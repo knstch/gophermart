@@ -72,85 +72,20 @@ func (s *Semaphore) Release() {
 	<-s.semaCh
 }
 
-type Order struct {
-	Login            string  `bun:"login" json:"-"`
-	Order            string  `bun:"order" json:"order"`
-	Time             string  `bun:"uploaded_at" json:"uploaded_at"`
-	Status           string  `bun:"status" json:"status"`
-	BonusesWithdrawn float32 `bun:"bonuses_withdrawn" json:"sum"`
-	Accrual          float32 `bun:"accrual" json:"-"`
-}
-
 // A struct designed to insert login and password data to users table
 type User struct {
-	Login     string  `bun:"login"`
-	Password  string  `bun:"password"`
-	Balance   float32 `bun:"balance"`
-	Withdrawn float32 `bun:"withdrawn"`
+	Balance float32 `bun:"balance"`
 }
 
 func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
 	fmt.Println("Acquaired works??: ", order.Accrual)
-	// ord := Order{
-	// 	Login:   login,
-	// 	Order:   order.Order,
-	// 	Status:  order.Status,
-	// 	Accural: order.Accrual,
-	// }
 
-	// var user User
-	// db := bun.NewDB(storage.db, pgdialect.New())
-	// _, err := db.NewUpdate().
-	// 	Model(&ord).
-	// 	Set(`status = ?`, ord.Status).
-	// 	Set(`accural = ?`, ord.Accural).
-	// 	Where(`"order" = ?`, ord.Order).
-	// 	Exec(ctx)
-	// if err != nil {
-	// 	logger.ErrorLogger("Error withdrawning bonuses from the account: ", err)
-	// 	return err
-	// }
-
-	// var orderPosted Order
-	// _, err = db.NewSelect().Model(&orderPosted).Where(`"order" = ?`, order.Order).Exec(ctx)
-	// if err != nil {
-	// 	logger.ErrorLogger("Error checking order: ", err)
-	// 	return err
-	// }
-	// fmt.Println("Order after post! ", orderPosted.Order)
-
-	// _, err = db.NewUpdate().
-	// 	TableExpr("users").
-	// 	Set(`balance = ?`, order.Accrual).
-	// 	Where(`login = ?`, login).
-	// 	Exec(ctx)
-	// if err != nil {
-	// 	logger.ErrorLogger("Error topping up the balance: ", err)
-	// 	return err
-	// }
-	// _, err = db.NewSelect().TableExpr("users").Exec(ctx)
-	// if err != nil {
-	// 	logger.ErrorLogger("Error checking order: ", err)
-	// 	return err
-	// }
-	// fmt.Println("User after post! ", user.Login)
 	_, err := storage.db.ExecContext(ctx, `UPDATE orders
 		SET status = $1, accrual = $2
 		WHERE "order" = $3`, order.Status, order.Accrual, order.Order)
 	if err != nil {
 		logger.ErrorLogger("Error making an update request", err)
 	}
-	ord := Order{
-		Login:   login,
-		Order:   order.Order,
-		Status:  order.Status,
-		Accrual: order.Accrual,
-	}
-	err = storage.db.QueryRowContext(ctx, `SELECT "order", accrual FROM orders WHERE "order" = $1`, order.Order).Scan(&ord.Order, &ord.Accrual)
-	if err != nil {
-		logger.ErrorLogger("Error scanning data ", err)
-	}
-	fmt.Println("Order accuraled: ", ord.Accrual)
 
 	_, err = storage.db.ExecContext(ctx, `UPDATE users
 		SET balance = balance + $1
