@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"os"
 )
 
@@ -22,6 +23,7 @@ func ParseConfig() {
 	flag.StringVar(&ReadyConfig.Database, "d", "postgres://postgres:Xer_0101@localhost/gophermart?sslmode=disable", "database URI")
 	flag.StringVar(&ReadyConfig.Accural, "r", "http://localhost:8081", "accural system address")
 	flag.StringVar(&ReadyConfig.SecretKey, "k", "aboba", "secret key to encode cookies")
+	fmt.Println("-r flag: ", ReadyConfig.Accural)
 	flag.Parse()
 	if secretKey := os.Getenv("SECRET_KEY"); secretKey != "" {
 		ReadyConfig.SecretKey = secretKey
