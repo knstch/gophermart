@@ -213,6 +213,7 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 	_, err = db.NewUpdate().
 		TableExpr("users").
 		Set("balance = ?", bonusesAvailable-spendBonuses).
+		Set("withdrawn = withdrawn + ?", spendBonuses).
 		Where("login = ?", login).
 		Exec(ctx)
 	if err != nil {
