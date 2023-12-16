@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgerrcode"
 	"github.com/knstch/gophermart/internal/app/cookie"
+	getbonuses "github.com/knstch/gophermart/internal/app/getBonuses"
 	gophermarterrors "github.com/knstch/gophermart/internal/app/gophermartErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
 	cookielogin "github.com/knstch/gophermart/internal/app/middleware/cookieLogin"
@@ -116,6 +117,7 @@ func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 		res.Write([]byte("Wrong order number"))
 		return
 	}
+	go getbonuses.GetStatusFromAccural(orderNum, login)
 	res.WriteHeader(202)
 	res.Write([]byte("Successfully loaded ordred"))
 }
