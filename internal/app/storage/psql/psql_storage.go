@@ -238,6 +238,7 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 		Where("login = ? and bonuses_withdrawn != 0", login).
 		Order("uploaded_at ASC").
 		Rows(ctx)
+	rows.Err()
 	if err != nil {
 		logger.ErrorLogger("Error getting data: ", err)
 		return nil, err
