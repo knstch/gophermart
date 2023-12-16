@@ -103,7 +103,8 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 	}
 
 	go func() {
-		for orderToUpdate := range getBonuses.GetStatusFromAccural(orderNum, login) {
+		resultChannel := getBonuses.GetStatusFromAccural(orderNum, login)
+		for orderToUpdate := range resultChannel {
 			storage.UpdateStatus(ctx, orderToUpdate, login)
 		}
 	}()

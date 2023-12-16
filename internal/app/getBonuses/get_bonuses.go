@@ -95,8 +95,6 @@ func GetStatusFromAccural(order string, login string) <-chan OrderUpdateFromAccu
 	OrderJob := make(chan OrderToAccuralSys)
 	result := make(chan OrderUpdateFromAccural)
 
-	defer close(result)
-
 	wg.Add(1)
 	go func(jobs <-chan OrderToAccuralSys, result chan<- OrderUpdateFromAccural) {
 		defer wg.Done()
