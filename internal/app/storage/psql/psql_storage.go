@@ -3,9 +3,11 @@ package psql
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"time"
 
-	getBonuses "github.com/knstch/gophermart/internal/app/getBonuses"
+	"github.com/go-resty/resty/v2"
+	"github.com/knstch/gophermart/cmd/config"
 	gophermarterrors "github.com/knstch/gophermart/internal/app/gophermartErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
 	validitycheck "github.com/knstch/gophermart/internal/app/validityCheck"
@@ -102,12 +104,75 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 		return gophermarterrors.ErrYouAlreadyLoadedOrder
 	}
 
-	go getBonuses.GetStatusFromAccural(orderNum, login)
+	go storage.GetStatusFromAccural(orderNum, login)
 
 	return nil
 }
 
-func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order getBonuses.OrderUpdateFromAccural, login string) error {
+func (storage *PsqURLlStorage) GetStatusFromAccural(order string, login string) {
+	var wg sync.WaitGroup
+
+	sendOrderToJobs := NewOrderToAccuralSys(order)
+	OrderJob := make(chan OrderToAccuralSys)
+	result := make(chan OrderUpdateFromAccural)
+
+	defer close(result)
+
+	wg.Add(1)
+	go func(jobs <-chan OrderToAccuralSys, result chan<- OrderUpdateFromAccural) {
+
+		defer wg.Done()
+
+		client := resty.New().SetBaseURL(config.ReadyConfig.Accural)
+		job := <-jobs
+		lastResult := OrderUpdateFromAccural{}
+		for {
+			var orderUpdate OrderUpdateFromAccural
+
+			resp, err := client.R().
+				SetResult(&orderUpdate).
+				Get("/api/orders/" + job.Order)
+			if err != nil {
+				logger.ErrorLogger("Got error trying to send a get request from worker: ", err)
+				break
+			}
+			switch resp.StatusCode() {
+			case 429:
+				time.Sleep(3 * time.Second)
+			case 204:
+				time.Sleep(1 * time.Second)
+			}
+
+			if resp.StatusCode() == 500 {
+				logger.ErrorLogger("Internal server error in accural system: ", err)
+				break
+			}
+			if orderUpdate != lastResult {
+				lastResult = orderUpdate
+				result <- lastResult
+			}
+			if orderUpdate.Status == "INVALID" || orderUpdate.Status == "PROCESSED" {
+				break
+			}
+			time.Sleep(250 * time.Millisecond)
+		}
+	}(OrderJob, result)
+
+	OrderJob <- sendOrderToJobs
+	defer close(OrderJob)
+
+	go func() {
+		for orderToUpdate := range result {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			storage.UpdateStatus(ctx, orderToUpdate, login)
+			cancel()
+		}
+	}()
+
+	wg.Wait()
+}
+
+func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
 
 	_, err := storage.db.ExecContext(ctx, `UPDATE orders
 		SET status = $1, accrual = $2

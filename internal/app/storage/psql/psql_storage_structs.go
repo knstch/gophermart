@@ -57,3 +57,19 @@ type PsqURLlStorage struct {
 func NewPsqlStorage(db *sql.DB) *PsqURLlStorage {
 	return &PsqURLlStorage{db: db}
 }
+
+type OrderUpdateFromAccural struct {
+	Order   string  `json:"order"`
+	Status  string  `json:"status"`
+	Accrual float32 `json:"accrual"`
+}
+
+type OrderToAccuralSys struct {
+	Order string
+}
+
+func NewOrderToAccuralSys(order string) OrderToAccuralSys {
+	return OrderToAccuralSys{
+		Order: order,
+	}
+}

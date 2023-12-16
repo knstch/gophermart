@@ -1,136 +1,129 @@
 package getbonuses
 
-import (
-	"context"
-	"database/sql"
-	"sync"
-	"time"
+// import (
+// 	"context"
+// 	"database/sql"
+// 	"sync"
+// 	"time"
 
-	"github.com/go-resty/resty/v2"
-	"github.com/knstch/gophermart/cmd/config"
-	"github.com/knstch/gophermart/internal/app/logger"
-)
+// 	"github.com/go-resty/resty/v2"
+// 	"github.com/knstch/gophermart/cmd/config"
+// 	"github.com/knstch/gophermart/internal/app/logger"
+// )
 
-type Storage interface {
-	UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error
-}
+// type Storage interface {
+// 	UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error
+// }
 
-type StatusUpdater struct {
-	s Storage
-}
+// type StatusUpdater struct {
+// 	s Storage
+// }
 
-type OrderUpdateFromAccural struct {
-	Order   string  `json:"order"`
-	Status  string  `json:"status"`
-	Accrual float32 `json:"accrual"`
-}
+// type OrderUpdateFromAccural struct {
+// 	Order   string  `json:"order"`
+// 	Status  string  `json:"status"`
+// 	Accrual float32 `json:"accrual"`
+// }
 
-type OrderToAccuralSys struct {
-	Order string
-}
+// type OrderToAccuralSys struct {
+// 	Order string
+// }
 
-func NewOrderToAccuralSys(order string) OrderToAccuralSys {
-	return OrderToAccuralSys{
-		Order: order,
-	}
-}
+// func NewOrderToAccuralSys(order string) OrderToAccuralSys {
+// 	return OrderToAccuralSys{
+// 		Order: order,
+// 	}
+// }
 
-func NewStatusUpdater(s Storage) *StatusUpdater {
-	return &StatusUpdater{s: s}
-}
+// func NewStatusUpdater(s Storage) *StatusUpdater {
+// 	return &StatusUpdater{s: s}
+// }
 
-type PsqURLlStorage struct {
-	db *sql.DB
-}
+// type PsqURLlStorage struct {
+// 	db *sql.DB
+// }
 
-func NewPsqlStorage(db *sql.DB) *PsqURLlStorage {
-	return &PsqURLlStorage{db: db}
-}
+// func NewPsqlStorage(db *sql.DB) *PsqURLlStorage {
+// 	return &PsqURLlStorage{db: db}
+// }
 
-func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
+// func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
 
-	_, err := storage.db.ExecContext(ctx, `UPDATE orders
-		SET status = $1, accrual = $2
-		WHERE "order" = $3`, order.Status, order.Accrual, order.Order)
-	if err != nil {
-		logger.ErrorLogger("Error making an update request", err)
-	}
+// 	_, err := storage.db.ExecContext(ctx, `UPDATE orders
+// 		SET status = $1, accrual = $2
+// 		WHERE "order" = $3`, order.Status, order.Accrual, order.Order)
+// 	if err != nil {
+// 		logger.ErrorLogger("Error making an update request", err)
+// 	}
 
-	_, err = storage.db.ExecContext(ctx, `UPDATE users
-		SET balance = balance + $1
-		WHERE login = $2`, order.Accrual, login)
-	if err != nil {
-		logger.ErrorLogger("Error making an update request", err)
-	}
-	return nil
-}
+// 	_, err = storage.db.ExecContext(ctx, `UPDATE users
+// 		SET balance = balance + $1
+// 		WHERE login = $2`, order.Accrual, login)
+// 	if err != nil {
+// 		logger.ErrorLogger("Error making an update request", err)
+// 	}
+// 	return nil
+// }
 
-func GetStatusFromAccural(order string, login string) {
-	db, err := sql.Open("pgx", config.ReadyConfig.Database)
-	if err != nil {
-		logger.ErrorLogger("Error setting the connection with the database: ", err)
-	}
-	storage := NewPsqlStorage(db)
-	updater := NewStatusUpdater(storage)
+// func GetStatusFromAccural(order string, login string) {
+// 	var wg sync.WaitGroup
 
-	var wg sync.WaitGroup
+// 	sendOrderToJobs := NewOrderToAccuralSys(order)
+// 	OrderJob := make(chan OrderToAccuralSys)
+// 	result := make(chan OrderUpdateFromAccural)
 
-	sendOrderToJobs := NewOrderToAccuralSys(order)
-	OrderJob := make(chan OrderToAccuralSys)
-	result := make(chan OrderUpdateFromAccural)
+// 	defer close(result)
 
-	defer close(result)
+// 	wg.Add(1)
+// 	go func(jobs <-chan OrderToAccuralSys, result chan<- OrderUpdateFromAccural) {
 
-	wg.Add(1)
-	go func(jobs <-chan OrderToAccuralSys, result chan<- OrderUpdateFromAccural) {
+// 		defer wg.Done()
 
-		defer wg.Done()
+// 		client := resty.New().SetBaseURL(config.ReadyConfig.Accural)
+// 		job := <-jobs
+// 		lastResult := OrderUpdateFromAccural{}
+// 		for {
+// 			var orderUpdate OrderUpdateFromAccural
 
-		client := resty.New().SetBaseURL(config.ReadyConfig.Accural)
-		job := <-jobs
-		lastResult := OrderUpdateFromAccural{}
-		for {
-			var orderUpdate OrderUpdateFromAccural
+// 			resp, err := client.R().
+// 				SetResult(&orderUpdate).
+// 				Get("/api/orders/" + job.Order)
+// 			if err != nil {
+// 				logger.ErrorLogger("Got error trying to send a get request from worker: ", err)
+// 				break
+// 			}
+// 			switch resp.StatusCode() {
+// 			case 429:
+// 				time.Sleep(3 * time.Second)
+// 			case 204:
+// 				time.Sleep(1 * time.Second)
+// 			}
 
-			resp, err := client.R().
-				SetResult(&orderUpdate).
-				Get("/api/orders/" + job.Order)
-			if err != nil {
-				logger.ErrorLogger("Got error trying to send a get request from worker: ", err)
-				break
-			}
-			switch resp.StatusCode() {
-			case 429:
-				time.Sleep(3 * time.Second)
-			case 204:
-				time.Sleep(1 * time.Second)
-			}
+// 			if resp.StatusCode() == 500 {
+// 				logger.ErrorLogger("Internal server error in accural system: ", err)
+// 				break
+// 			}
+// 			if orderUpdate != lastResult {
+// 				lastResult = orderUpdate
+// 				result <- lastResult
+// 			}
+// 			if orderUpdate.Status == "INVALID" || orderUpdate.Status == "PROCESSED" {
+// 				break
+// 			}
+// 			time.Sleep(250 * time.Millisecond)
+// 		}
+// 	}(OrderJob, result)
 
-			if resp.StatusCode() == 500 {
-				logger.ErrorLogger("Internal server error in accural system: ", err)
-				break
-			}
-			if orderUpdate != lastResult {
-				lastResult = orderUpdate
-				result <- lastResult
-			}
-			if orderUpdate.Status == "INVALID" || orderUpdate.Status == "PROCESSED" {
-				break
-			}
-			time.Sleep(250 * time.Millisecond)
-		}
-	}(OrderJob, result)
+// 	OrderJob <- sendOrderToJobs
+// 	defer close(OrderJob)
 
-	OrderJob <- sendOrderToJobs
-	defer close(OrderJob)
+// 	go func() {
+// 		for orderToUpdate := range result {
+// 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// 			updater.s.UpdateStatus(ctx, orderToUpdate, login)
+// 			cancel()
+// 		}
+// 	}()
 
-	go func() {
-		for orderToUpdate := range result {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			updater.s.UpdateStatus(ctx, orderToUpdate, login)
-			cancel()
-		}
-	}()
-
-	wg.Wait()
-}
+// 	wg.Wait()
+// }
