@@ -119,7 +119,7 @@ func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 	}
 	res.WriteHeader(202)
 	res.Write([]byte("Successfully loaded ordred"))
-	getbonuses.GetStatusFromAccural(orderNum, login)
+	defer getbonuses.GetStatusFromAccural(orderNum, login)
 }
 
 // A handler used to get all user's orders.
