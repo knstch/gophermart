@@ -63,11 +63,10 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 	now := time.Now()
 
 	userOrder := &Order{
-		Login:            login,
-		Order:            orderNum,
-		UploadedAt:       now.Format(time.RFC3339),
-		Status:           "NEW",
-		BonusesWithdrawn: 0,
+		Login:      login,
+		Order:      orderNum,
+		UploadedAt: now.Format(time.RFC3339),
+		Status:     "NEW",
 	}
 
 	isValid := validitycheck.LuhnAlgorithm(orderNum)
@@ -181,12 +180,10 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 	now := time.Now()
 
 	userOrder := &Order{
-		Login:            login,
-		Order:            orderNum,
-		UploadedAt:       now.Format(time.RFC3339),
-		Status:           "NEW",
-		BonusesWithdrawn: spendBonuses,
-		Accrual:          0,
+		Login:      login,
+		Order:      orderNum,
+		UploadedAt: now.Format(time.RFC3339),
+		Status:     "NEW",
 	}
 
 	err := db.NewSelect().
@@ -257,7 +254,7 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 		allOrders = append(allOrders, jsonOrder{
 			Order:            orderRow.Order,
 			Time:             orderRow.UploadedAt,
-			BonusesWithdrawn: orderRow.BonusesWithdrawn,
+			BonusesWithdrawn: *orderRow.BonusesWithdrawn,
 		})
 	}
 

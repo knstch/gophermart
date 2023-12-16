@@ -18,8 +18,8 @@ type Order struct {
 	Order            string  `bun:"order" json:"number"`
 	Status           string  `bun:"status" json:"status"`
 	UploadedAt       string  `bun:"uploaded_at" json:"uploaded_at"`
-	BonusesWithdrawn float32 `bun:"bonuses_withdrawn"`
-	Accrual          float32 `bun:"accrual" json:"accrual"`
+	BonusesWithdrawn *float32 `bun:"bonuses_withdrawn"`
+	Accrual          *float32 `bun:"accrual" json:"accrual"`
 }
 
 type jsonOrder struct {
