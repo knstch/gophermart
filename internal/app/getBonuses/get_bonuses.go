@@ -87,7 +87,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	return nil
 }
 
-func GetStatusFromAccural(order string, login string) chan OrderUpdateFromAccural {
+func GetStatusFromAccural(order string, login string) <-chan OrderUpdateFromAccural {
 
 	var wg sync.WaitGroup
 
