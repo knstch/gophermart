@@ -87,13 +87,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	return nil
 }
 
-func GetStatusFromAccural(order string, login string) {
-	db, err := sql.Open("pgx", config.ReadyConfig.Database)
-	if err != nil {
-		logger.ErrorLogger("Error setting the connection with the database: ", err)
-	}
-	storage := NewPsqlStorage(db)
-	updater := NewStatusUpdater(storage)
+func GetStatusFromAccural(order string, login string) chan OrderUpdateFromAccural {
 
 	var wg sync.WaitGroup
 
@@ -153,13 +147,7 @@ func GetStatusFromAccural(order string, login string) {
 	OrderJob <- sendOrderToJobs
 	defer close(OrderJob)
 
-	go func() {
-		for orderToUpdate := range result {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			updater.s.UpdateStatus(ctx, orderToUpdate, login)
-			cancel()
-		}
-	}()
-
 	wg.Wait()
+
+	return result
 }

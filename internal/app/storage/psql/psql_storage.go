@@ -6,6 +6,7 @@ import (
 	"time"
 
 	gophermarterrors "github.com/knstch/gophermart/internal/app/gophermartErrors"
+	getBonuses "github.com/knstch/gophermart/internal/app/getBonuses"
 	"github.com/knstch/gophermart/internal/app/logger"
 	validitycheck "github.com/knstch/gophermart/internal/app/validityCheck"
 	"github.com/uptrace/bun"
@@ -101,6 +102,32 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 		return gophermarterrors.ErrYouAlreadyLoadedOrder
 	}
 
+	result := getBonuses.GetStatusFromAccural(orderNum, login)
+
+	go func() {
+		for orderToUpdate := range result {
+			storage.UpdateStatus(ctx, orderToUpdate, login)
+		}
+	}()
+
+	return nil
+}
+
+func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order getBonuses.OrderUpdateFromAccural, login string) error {
+
+	_, err := storage.db.ExecContext(ctx, `UPDATE orders
+		SET status = $1, accrual = $2
+		WHERE "order" = $3`, order.Status, order.Accrual, order.Order)
+	if err != nil {
+		logger.ErrorLogger("Error making an update request", err)
+	}
+
+	_, err = storage.db.ExecContext(ctx, `UPDATE users
+		SET balance = balance + $1
+		WHERE login = $2`, order.Accrual, login)
+	if err != nil {
+		logger.ErrorLogger("Error making an update request", err)
+	}
 	return nil
 }
 
