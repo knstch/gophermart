@@ -102,14 +102,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 		return gophermarterrors.ErrYouAlreadyLoadedOrder
 	}
 
-	go func() {
-
-		result := getBonuses.GetStatusFromAccural(orderNum, login)
-
-		for orderToUpdate := range result {
-			storage.UpdateStatus(ctx, orderToUpdate, login)
-		}
-	}()
+	go getBonuses.GetStatusFromAccural(orderNum, login)
 
 	return nil
 }
