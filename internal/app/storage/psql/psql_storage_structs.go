@@ -15,7 +15,7 @@ type User struct {
 // A struct designed to insert login and order number to orders table
 type Order struct {
 	Login            string  `bun:"login" json:"-"`
-	Order            string  `bun:"order" json:"order"`
+	Order            string  `bun:"order" json:"number"`
 	Time             string  `bun:"uploaded_at" json:"uploaded_at"`
 	Status           string  `bun:"status" json:"status"`
 	BonusesWithdrawn float32 `bun:"bonuses_withdrawn" json:"sum"`
