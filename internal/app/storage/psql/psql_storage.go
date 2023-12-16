@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	getbonuses "github.com/knstch/gophermart/internal/app/getBonuses"
 	gophermarterrors "github.com/knstch/gophermart/internal/app/gophermartErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
 	validitycheck "github.com/knstch/gophermart/internal/app/validityCheck"
@@ -89,6 +90,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 		_, err := db.NewInsert().
 			Model(userOrder).
 			Exec(ctx)
+			go getbonuses.GetStatusFromAccural(orderNum, login)
 		if err != nil {
 			logger.ErrorLogger("Error writing data: ", err)
 			return err
@@ -107,7 +109,6 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 // GetOrders accepts context, login and returns an error and all user's orders
 // ordered from old to new ones in json format.
 func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]byte, error) {
-	time.Sleep(500 * time.Millisecond)
 	var allOrders []Order
 
 	order := new(Order)
