@@ -117,7 +117,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		logger.ErrorLogger("Error checking order: ", err)
 		return err
 	}
-	fmt.Println("Order after post! ", orderPosted.Accural)
+	fmt.Println("Order after post! ", orderPosted.Order)
 
 	_, err = db.NewUpdate().
 		TableExpr("users").
@@ -128,7 +128,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		logger.ErrorLogger("Error topping up the balance: ", err)
 		return err
 	}
-	_, err = db.NewSelect().Model(&user).Limit(1).Exec(ctx)
+	_, err = db.NewSelect().TableExpr("users").Exec(ctx)
 	if err != nil {
 		logger.ErrorLogger("Error checking order: ", err)
 		return err
@@ -217,40 +217,3 @@ func GetStatusFromAccural(order string, login string) {
 
 	wg.Wait()
 }
-
-// func GetStatusFromAccural(order string) error {
-// 	db, err := sql.Open("pgx", config.ReadyConfig.Database)
-// 	if err != nil {
-// 		logger.ErrorLogger("Error setting the connection with the database: ", err)
-// 	}
-// 	storage := NewPsqlStorage(db)
-
-// 	updater := NewStatusUpdater(storage)
-// 	sendOrderToJobs := NewOrderToAccuralSys(order)
-// 	OrderJob := make(chan OrderToAccuralSys)
-// 	logger.InfoLogger("Activated GetStatusFromAccural")
-
-// 	result := make(chan OrderUpdateFromAccural)
-// 	// defer close(result)
-// 	for w := 1; w <= 5; w++ {
-// 		logger.InfoLogger("Activate workers")
-// 		go worker(OrderJob, result)
-// 	}
-
-// 	OrderJob <- sendOrderToJobs
-// 	defer close(OrderJob)
-
-// 	go func() {
-// 		select {
-// 		case orderToUpdate := <-result:
-
-// 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
-// 			updater.s.UpdateStatus(ctx, orderToUpdate)
-
-// 			cancel()
-// 		}
-// 	}()
-
-// 	return nil
-// }
