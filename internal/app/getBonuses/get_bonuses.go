@@ -87,17 +87,9 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	return nil
 }
 
-func GetStatusFromAccural(order string, login string) {
-	db, err := sql.Open("pgx", config.ReadyConfig.Database)
-	if err != nil {
-		logger.ErrorLogger("Error setting the connection with the database: ", err)
-	}
-	storage := NewPsqlStorage(db)
-	updater := NewStatusUpdater(storage)
+func GetStatusFromAccural(order string, login string) <-chan OrderUpdateFromAccural {
 
 	var wg sync.WaitGroup
-
-	semaphore := NewSemaphore(5)
 
 	sendOrderToJobs := NewOrderToAccuralSys(order)
 	OrderJob := make(chan OrderToAccuralSys)
@@ -105,61 +97,50 @@ func GetStatusFromAccural(order string, login string) {
 
 	defer close(result)
 
-	for idx := 0; idx < 5; idx++ {
-		wg.Add(1)
-		go func(jobs <-chan OrderToAccuralSys, result chan<- OrderUpdateFromAccural) {
+	wg.Add(1)
+	go func(jobs <-chan OrderToAccuralSys, result chan<- OrderUpdateFromAccural) {
+		defer wg.Done()
 
-			semaphore.Acquire()
-			defer wg.Done()
-			defer semaphore.Release()
+		client := resty.New().SetBaseURL(config.ReadyConfig.Accural)
+		job := <-jobs
+		lastResult := OrderUpdateFromAccural{}
+		for {
+			var orderUpdate OrderUpdateFromAccural
 
-			client := resty.New().SetBaseURL(config.ReadyConfig.Accural)
-			job := <-jobs
-			lastResult := OrderUpdateFromAccural{}
-			for {
-				var orderUpdate OrderUpdateFromAccural
-
-				resp, err := client.R().
-					SetResult(&orderUpdate).
-					Get("/api/orders/" + job.Order)
-				if err != nil {
-					logger.ErrorLogger("Got error trying to send a get request from worker: ", err)
-					break
-				}
-				switch resp.StatusCode() {
-				case 429:
-					time.Sleep(3 * time.Second)
-				case 204:
-					time.Sleep(1 * time.Second)
-				}
-
-				if resp.StatusCode() == 500 {
-					logger.ErrorLogger("Internal server error in accural system: ", err)
-					break
-				}
-				if orderUpdate != lastResult {
-					lastResult = orderUpdate
-					result <- lastResult
-				}
-				if orderUpdate.Status == "INVALID" || orderUpdate.Status == "PROCESSED" {
-					break
-				}
-				time.Sleep(250 * time.Millisecond)
+			resp, err := client.R().
+				SetResult(&orderUpdate).
+				Get("/api/orders/" + job.Order)
+			if err != nil {
+				logger.ErrorLogger("Got error trying to send a get request from worker: ", err)
+				break
+			}
+			switch resp.StatusCode() {
+			case 429:
+				time.Sleep(3 * time.Second)
+			case 204:
+				time.Sleep(1 * time.Second)
 			}
 
-		}(OrderJob, result)
-	}
+			if resp.StatusCode() == 500 {
+				logger.ErrorLogger("Internal server error in accural system: ", err)
+				break
+			}
+			if orderUpdate != lastResult {
+				lastResult = orderUpdate
+				result <- lastResult
+			}
+			if orderUpdate.Status == "INVALID" || orderUpdate.Status == "PROCESSED" {
+				break
+			}
+			time.Sleep(250 * time.Millisecond)
+		}
+
+	}(OrderJob, result)
 
 	OrderJob <- sendOrderToJobs
 	defer close(OrderJob)
 
-	go func() {
-		for orderToUpdate := range result {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			updater.s.UpdateStatus(ctx, orderToUpdate, login)
-			cancel()
-		}
-	}()
-
 	wg.Wait()
+
+	return result
 }
