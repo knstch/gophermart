@@ -47,28 +47,6 @@ func NewPsqlStorage(db *sql.DB) *PsqURLlStorage {
 	return &PsqURLlStorage{db: db}
 }
 
-// Semaphore структура семафора
-type Semaphore struct {
-	semaCh chan struct{}
-}
-
-// NewSemaphore создает семафор с буферизованным каналом емкостью maxReq
-func NewSemaphore(maxReq int) *Semaphore {
-	return &Semaphore{
-		semaCh: make(chan struct{}, maxReq),
-	}
-}
-
-// когда горутина запускается, отправляем пустую структуру в канал semaCh
-func (s *Semaphore) Acquire() {
-	s.semaCh <- struct{}{}
-}
-
-// когда горутина завершается, из канала semaCh убирается пустая структура
-func (s *Semaphore) Release() {
-	<-s.semaCh
-}
-
 func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
 
 	_, err := storage.db.ExecContext(ctx, `UPDATE orders
@@ -87,14 +65,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	return nil
 }
 
-func GetStatusFromAccural(order string, login string) {
-	db, err := sql.Open("pgx", config.ReadyConfig.Database)
-	if err != nil {
-		logger.ErrorLogger("Error setting the connection with the database: ", err)
-	}
-	storage := NewPsqlStorage(db)
-	updater := NewStatusUpdater(storage)
-
+func GetStatusFromAccural(order string, login string) <-chan OrderUpdateFromAccural {
 	var wg sync.WaitGroup
 
 	sendOrderToJobs := NewOrderToAccuralSys(order)
@@ -141,19 +112,12 @@ func GetStatusFromAccural(order string, login string) {
 			}
 			time.Sleep(250 * time.Millisecond)
 		}
-
 	}(OrderJob, result)
 
 	OrderJob <- sendOrderToJobs
 	defer close(OrderJob)
 
-	go func() {
-		for orderToUpdate := range result {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			updater.s.UpdateStatus(ctx, orderToUpdate, login)
-			cancel()
-		}
-	}()
-
 	wg.Wait()
+
+	return result
 }
