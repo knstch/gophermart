@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/knstch/gophermart/internal/app/cookie"
@@ -119,7 +118,6 @@ func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	go getbonuses.GetStatusFromAccural(orderNum, login)
-	time.Sleep(1 * time.Second)
 	res.WriteHeader(202)
 	res.Write([]byte("Successfully loaded ordred"))
 }

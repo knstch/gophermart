@@ -107,6 +107,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 // GetOrders accepts context, login and returns an error and all user's orders
 // ordered from old to new ones in json format.
 func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]byte, error) {
+	time.Sleep(2 * time.Second)
 	var allOrders []Order
 
 	order := new(Order)

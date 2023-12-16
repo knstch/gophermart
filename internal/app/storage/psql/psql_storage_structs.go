@@ -14,10 +14,10 @@ type User struct {
 
 // A struct designed to insert login and order number to orders table
 type Order struct {
-	Login            string  `bun:"login"`
-	Order            string  `bun:"order" json:"number"`
-	Status           string  `bun:"status" json:"status"`
-	UploadedAt       string  `bun:"uploaded_at" json:"uploaded_at"`
+	Login            string   `bun:"login"`
+	Order            string   `bun:"order" json:"number"`
+	Status           string   `bun:"status" json:"status"`
+	UploadedAt       string   `bun:"uploaded_at" json:"uploaded_at"`
 	BonusesWithdrawn *float32 `bun:"bonuses_withdrawn"`
 	Accrual          *float32 `bun:"accrual" json:"accrual"`
 }
