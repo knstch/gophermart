@@ -35,7 +35,7 @@ type credentials struct {
 
 // A struct used to put data to a json response
 type balanceInfo struct {
-	Balance   float32 `json:"balance"`
+	Balance   float32 `json:"current"`
 	Withdrawn float32 `json:"withdrawn"`
 }
 
