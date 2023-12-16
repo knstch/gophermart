@@ -97,7 +97,7 @@ func GetStatusFromAccural(order string, login string) {
 
 	var wg sync.WaitGroup
 
-	semaphore := NewSemaphore(1)
+	semaphore := NewSemaphore(5)
 
 	sendOrderToJobs := NewOrderToAccuralSys(order)
 	OrderJob := make(chan OrderToAccuralSys)
@@ -105,7 +105,7 @@ func GetStatusFromAccural(order string, login string) {
 
 	defer close(result)
 
-	for idx := 0; idx < 1; idx++ {
+	for idx := 0; idx < 5; idx++ {
 		wg.Add(1)
 		go func(jobs <-chan OrderToAccuralSys, result chan<- OrderUpdateFromAccural) {
 

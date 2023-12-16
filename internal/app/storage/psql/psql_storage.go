@@ -3,6 +3,7 @@ package psql
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	getbonuses "github.com/knstch/gophermart/internal/app/getBonuses"
@@ -90,7 +91,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 		_, err := db.NewInsert().
 			Model(userOrder).
 			Exec(ctx)
-		getbonuses.GetStatusFromAccural(orderNum, login)
+		go getbonuses.GetStatusFromAccural(orderNum, login)
 		if err != nil {
 			logger.ErrorLogger("Error writing data: ", err)
 			return err
@@ -134,7 +135,8 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]b
 			logger.ErrorLogger("Error scanning data: ", err)
 			return nil, err
 		}
-
+		accrualString := fmt.Sprintf("%.2f", *orderRow.Accrual)
+		logger.InfoLogger("Order bonuses: " + accrualString)
 		allOrders = append(allOrders, Order{
 			Order:      orderRow.Order,
 			UploadedAt: orderRow.UploadedAt,
