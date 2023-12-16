@@ -121,13 +121,13 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	_, err = db.NewUpdate().
 		TableExpr("users").
 		Set(`balance = ?`, order.Accrual).
-		Where(`"login" = ?`, login).
+		Where(`login = ?`, login).
 		Exec(ctx)
 	if err != nil {
 		logger.ErrorLogger("Error topping up the balance: ", err)
 		return err
 	}
-	_, err = db.NewSelect().Model(&user).Where(`"login" = ?`, login).Exec(ctx)
+	_, err = db.NewSelect().Model(&user).Where(`login = ?`, login).Exec(ctx)
 	if err != nil {
 		logger.ErrorLogger("Error checking order: ", err)
 		return err
