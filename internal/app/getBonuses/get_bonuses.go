@@ -100,7 +100,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	var user User
 	db := bun.NewDB(storage.db, pgdialect.New())
 	_, err := db.NewUpdate().
-		Model(&user).
+		Model(&ord).
 		Set(`status = ?`, ord.Status).
 		Set(`accural = ?`, ord.Accural).
 		Where(`"order" = ?`, ord.Order).
@@ -127,6 +127,12 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		logger.ErrorLogger("Error topping up the balance: ", err)
 		return err
 	}
+	_, err = db.NewSelect().Model(&user).Where(`"login" = ?`, login).Exec(ctx)
+	if err != nil {
+		logger.ErrorLogger("Error checking order: ", err)
+		return err
+	}
+	fmt.Println("User after post! ", user.Balance)
 	return nil
 }
 
