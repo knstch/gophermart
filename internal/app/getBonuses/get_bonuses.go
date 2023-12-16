@@ -135,7 +135,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	// }
 	// fmt.Println("User after post! ", user.Login)
 	_, err := storage.db.ExecContext(ctx, `UPDATE orders
-		SET status = $1, accrual = $2
+		SET status = $1, accural = $2
 		WHERE "order" = $3`, order.Status, order.Accrual, order.Order)
 	if err != nil {
 		logger.ErrorLogger("Error making an update request", err)
