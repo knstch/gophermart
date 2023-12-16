@@ -132,7 +132,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		logger.ErrorLogger("Error checking order: ", err)
 		return err
 	}
-	fmt.Println("User after post! ", user.Balance)
+	fmt.Println("User after post! ", user.Login)
 	return nil
 }
 
