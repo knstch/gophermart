@@ -127,7 +127,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		logger.ErrorLogger("Error topping up the balance: ", err)
 		return err
 	}
-	_, err = db.NewSelect().Model(&user).Where(`login = ?`, login).Exec(ctx)
+	_, err = db.NewSelect().Model(&user).Where(`"login" = ?`, login).Exec(ctx)
 	if err != nil {
 		logger.ErrorLogger("Error checking order: ", err)
 		return err
