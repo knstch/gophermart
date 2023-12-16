@@ -68,7 +68,6 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 		UploadedAt:       now.Format(time.RFC3339),
 		Status:           "NEW",
 		BonusesWithdrawn: 0,
-		Accrual:          0,
 	}
 
 	isValid := validitycheck.LuhnAlgorithm(orderNum)

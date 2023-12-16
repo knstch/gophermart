@@ -3,15 +3,12 @@ package getbonuses
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/knstch/gophermart/cmd/config"
 	"github.com/knstch/gophermart/internal/app/logger"
-	// "github.com/uptrace/bun"
-	// "github.com/uptrace/bun/dialect/pgdialect"
 )
 
 type Storage interface {
@@ -72,13 +69,7 @@ func (s *Semaphore) Release() {
 	<-s.semaCh
 }
 
-// A struct designed to insert login and password data to users table
-type User struct {
-	Balance float32 `bun:"balance"`
-}
-
 func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
-	fmt.Println("Acquaired works??: ", order.Accrual)
 
 	_, err := storage.db.ExecContext(ctx, `UPDATE orders
 		SET status = $1, accrual = $2
@@ -93,18 +84,10 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 	if err != nil {
 		logger.ErrorLogger("Error making an update request", err)
 	}
-
-	var user User
-	err = storage.db.QueryRowContext(ctx, `SELECT balance FROM users WHERE login = $1`, login).Scan(&user.Balance)
-	if err != nil {
-		logger.ErrorLogger("Error scanning data ", err)
-	}
-	fmt.Println("Balance: ", user.Balance)
 	return nil
 }
 
 func GetStatusFromAccural(order string, login string) {
-	fmt.Println("GetStatusFromAccural works")
 	db, err := sql.Open("pgx", config.ReadyConfig.Database)
 	if err != nil {
 		logger.ErrorLogger("Error setting the connection with the database: ", err)
@@ -143,7 +126,6 @@ func GetStatusFromAccural(order string, login string) {
 					logger.ErrorLogger("Got error trying to send a get request from worker: ", err)
 					break
 				}
-				fmt.Println("Resp status code: ", resp.StatusCode())
 				switch resp.StatusCode() {
 				case 429:
 					time.Sleep(3 * time.Second)
@@ -159,7 +141,6 @@ func GetStatusFromAccural(order string, login string) {
 					lastResult = orderUpdate
 					result <- lastResult
 				}
-				fmt.Println("Order status: ", orderUpdate.Status)
 				if orderUpdate.Status == "INVALID" || orderUpdate.Status == "PROCESSED" {
 					break
 				}
@@ -174,7 +155,6 @@ func GetStatusFromAccural(order string, login string) {
 
 	go func() {
 		for orderToUpdate := range result {
-			fmt.Println("Triggered result chan", orderToUpdate.Accrual)
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			updater.s.UpdateStatus(ctx, orderToUpdate, login)
 			cancel()
