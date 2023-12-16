@@ -65,10 +65,10 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 	userOrder := &Order{
 		Login:            login,
 		Order:            orderNum,
-		Time:             now.Format(time.RFC3339),
+		UploadedAt:       now.Format(time.RFC3339),
 		Status:           "NEW",
 		BonusesWithdrawn: 0,
-		Accural:          0,
+		Accrual:          0,
 	}
 
 	isValid := validitycheck.LuhnAlgorithm(orderNum)
@@ -126,16 +126,16 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]b
 
 	for rows.Next() {
 		var orderRow Order
-		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Time, &orderRow.Status, &orderRow.BonusesWithdrawn, &orderRow.Accural)
+		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Status, &orderRow.UploadedAt, &orderRow.BonusesWithdrawn, &orderRow.Accrual)
 		if err != nil {
 			logger.ErrorLogger("Error scanning data: ", err)
 			return nil, err
 		}
 
 		allOrders = append(allOrders, Order{
-			Order:  orderRow.Order,
-			Time:   orderRow.Time,
-			Status: orderRow.Status,
+			Order:      orderRow.Order,
+			UploadedAt: orderRow.UploadedAt,
+			Status:     orderRow.Status,
 		})
 	}
 
@@ -184,10 +184,10 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 	userOrder := &Order{
 		Login:            login,
 		Order:            orderNum,
-		Time:             now.Format(time.RFC3339),
+		UploadedAt:       now.Format(time.RFC3339),
 		Status:           "NEW",
 		BonusesWithdrawn: spendBonuses,
-		Accural:          0,
+		Accrual:          0,
 	}
 
 	err := db.NewSelect().
@@ -226,7 +226,7 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 // This function accepts context and login, and returns an error and json response with orders where a user
 // spent bonuses.
 func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login string) ([]byte, error) {
-	var allOrders []Order
+	var allOrders []jsonOrder
 
 	order := new(Order)
 
@@ -237,7 +237,6 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 		Where("login = ? and bonuses_withdrawn != 0", login).
 		Order("uploaded_at ASC").
 		Rows(ctx)
-	rows.Err()
 	if err != nil {
 		logger.ErrorLogger("Error getting data: ", err)
 		return nil, err
@@ -248,15 +247,15 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 	for rows.Next() {
 		noRows = false
 		var orderRow Order
-		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Time, &orderRow.Status, &orderRow.BonusesWithdrawn, &orderRow.Accural)
+		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Status, &orderRow.UploadedAt, &orderRow.BonusesWithdrawn, &orderRow.Accrual)
 		if err != nil {
 			logger.ErrorLogger("Error scanning data: ", err)
 			return nil, err
 		}
 
-		allOrders = append(allOrders, Order{
+		allOrders = append(allOrders, jsonOrder{
 			Order:            orderRow.Order,
-			Time:             orderRow.Time,
+			Time:             orderRow.UploadedAt,
 			BonusesWithdrawn: orderRow.BonusesWithdrawn,
 		})
 	}
@@ -268,6 +267,7 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 	jsonAllOrders, err := json.Marshal(allOrders)
 	if err != nil {
 		logger.ErrorLogger("Error marshaling orders: ", err)
+		return nil, err
 	}
 
 	return jsonAllOrders, nil

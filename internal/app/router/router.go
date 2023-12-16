@@ -19,9 +19,9 @@ func RequestsRouter(h *handler.Handler) chi.Router {
 			router.Route("/user", func(router chi.Router) {
 				router.Post("/register", h.SignUp)
 				router.Post("/login", h.Auth)
-				router.Get("/withdrawals", h.GetSpendOrderBonuses)
 				router.Group(func(router chi.Router) {
 					router.Use(cookielogin.WithCookieLogin)
+					router.Get("/withdrawals", h.GetSpendOrderBonuses)
 					router.Route("/orders", func(router chi.Router) {
 						router.Post("/", h.UploadOrder)
 						router.Get("/", h.GetOrders)

@@ -14,12 +14,18 @@ type User struct {
 
 // A struct designed to insert login and order number to orders table
 type Order struct {
-	Login            string  `bun:"login" json:"-"`
+	Login            string  `bun:"login"`
 	Order            string  `bun:"order" json:"number"`
-	Time             string  `bun:"uploaded_at" json:"uploaded_at"`
 	Status           string  `bun:"status" json:"status"`
-	BonusesWithdrawn float32 `bun:"bonuses_withdrawn" json:"sum"`
-	Accural          float32 `bun:"accural" json:"-"`
+	UploadedAt       string  `bun:"uploaded_at" json:"uploaded_at"`
+	BonusesWithdrawn float32 `bun:"bonuses_withdrawn"`
+	Accrual          float32 `bun:"accrual" json:"accrual"`
+}
+
+type jsonOrder struct {
+	Order            string  `json:"order"`
+	Time             string  `json:"processed_at"`
+	BonusesWithdrawn float32 `json:"sum"`
 }
 
 // A struct designed to initialize users table in the database
@@ -37,7 +43,7 @@ type Orders struct {
 	Status           string  `bun:"type:varchar(255)"`
 	UploadedAt       string  `bun:"type:timestamp"`
 	BonusesWithdrawn float32 `bun:"type:float"`
-	Accural          float32 `bun:"type:float"`
+	Accrual          float32 `bun:"type:float"`
 }
 
 // A struct used to set database connection and

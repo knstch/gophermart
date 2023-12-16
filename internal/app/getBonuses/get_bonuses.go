@@ -78,7 +78,7 @@ type Order struct {
 	Time             string  `bun:"uploaded_at" json:"uploaded_at"`
 	Status           string  `bun:"status" json:"status"`
 	BonusesWithdrawn float32 `bun:"bonuses_withdrawn" json:"sum"`
-	Accural          float32 `bun:"accural" json:"-"`
+	Accrual          float32 `bun:"accrual" json:"-"`
 }
 
 // A struct designed to insert login and password data to users table
@@ -144,13 +144,13 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		Login:   login,
 		Order:   order.Order,
 		Status:  order.Status,
-		Accural: order.Accrual,
+		Accrual: order.Accrual,
 	}
-	err = storage.db.QueryRowContext(ctx, `SELECT "order", accural FROM orders WHERE "order" = $1`, order.Order).Scan(&ord.Order, &ord.Accural)
+	err = storage.db.QueryRowContext(ctx, `SELECT "order", accural FROM orders WHERE "order" = $1`, order.Order).Scan(&ord.Order, &ord.Accrual)
 	if err != nil {
 		logger.ErrorLogger("Error scanning data ", err)
 	}
-	fmt.Println("Order accuraled: ", ord.Accural)
+	fmt.Println("Order accuraled: ", ord.Accrual)
 
 	_, err = storage.db.ExecContext(ctx, `UPDATE users
 		SET balance = balance + $1

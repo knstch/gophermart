@@ -2,7 +2,6 @@ package config
 
 import (
 	"flag"
-	"fmt"
 	"os"
 )
 
@@ -36,5 +35,4 @@ func ParseConfig() {
 	if accuralAddress := os.Getenv("ACCRUAL_SYSTEM_ADDRESS"); accuralAddress != "" {
 		ReadyConfig.Accural = accuralAddress
 	}
-	fmt.Println("-r flag: ", ReadyConfig.Accural)
 }
