@@ -117,9 +117,9 @@ func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 		res.Write([]byte("Wrong order number"))
 		return
 	}
-	go getbonuses.GetStatusFromAccural(orderNum, login)
 	res.WriteHeader(202)
 	res.Write([]byte("Successfully loaded ordred"))
+	getbonuses.GetStatusFromAccural(orderNum, login)
 }
 
 // A handler used to get all user's orders.
