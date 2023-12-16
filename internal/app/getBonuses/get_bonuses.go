@@ -146,7 +146,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		Status:  order.Status,
 		Accural: order.Accrual,
 	}
-	err = storage.db.QueryRowContext(ctx, `SELECT order, accural FROM orders WHERE "order" = $1`, order.Order).Scan(ord.Order, ord.Accural)
+	err = storage.db.QueryRowContext(ctx, `SELECT "order", accural FROM orders WHERE "order" = $1`, order.Order).Scan(&ord.Order, &ord.Accural)
 	if err != nil {
 		logger.ErrorLogger("Error scanning data ", err)
 	}
