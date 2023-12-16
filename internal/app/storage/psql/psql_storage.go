@@ -180,10 +180,11 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 	now := time.Now()
 
 	userOrder := &Order{
-		Login:      login,
-		Order:      orderNum,
-		UploadedAt: now.Format(time.RFC3339),
-		Status:     "NEW",
+		Login:            login,
+		Order:            orderNum,
+		UploadedAt:       now.Format(time.RFC3339),
+		Status:           "NEW",
+		BonusesWithdrawn: &spendBonuses,
 	}
 
 	err := db.NewSelect().
