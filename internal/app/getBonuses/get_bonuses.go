@@ -81,6 +81,14 @@ type Order struct {
 	Accural          float32 `bun:"accural" json:"-"`
 }
 
+// A struct designed to insert login and password data to users table
+type User struct {
+	Login     string  `bun:"login"`
+	Password  string  `bun:"password"`
+	Balance   float32 `bun:"balance"`
+	Withdrawn float32 `bun:"withdrawn"`
+}
+
 func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
 	fmt.Println("Acquaired works??: ", order.Accrual)
 	ord := Order{
@@ -88,13 +96,6 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		Order:   order.Order,
 		Status:  order.Status,
 		Accural: order.Accrual,
-	}
-	// A struct designed to insert login and password data to users table
-	type User struct {
-		Login     string  `bun:"login"`
-		Password  string  `bun:"password"`
-		Balance   float32 `bun:"balance"`
-		Withdrawn float32 `bun:"withdrawn"`
 	}
 
 	var user User
@@ -127,7 +128,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		logger.ErrorLogger("Error topping up the balance: ", err)
 		return err
 	}
-	_, err = db.NewSelect().Model(&user).Where(`"login" = ?`, login).Exec(ctx)
+	_, err = db.NewSelect().Model(&user).Limit(1).Exec(ctx)
 	if err != nil {
 		logger.ErrorLogger("Error checking order: ", err)
 		return err
