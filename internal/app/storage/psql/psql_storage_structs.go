@@ -63,13 +63,3 @@ type OrderUpdateFromAccural struct {
 	Status  string  `json:"status"`
 	Accrual float32 `json:"accrual"`
 }
-
-type OrderToAccuralSys struct {
-	Order string
-}
-
-func NewOrderToAccuralSys(order string) OrderToAccuralSys {
-	return OrderToAccuralSys{
-		Order: order,
-	}
-}
