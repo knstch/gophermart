@@ -151,6 +151,20 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		logger.ErrorLogger("Error scanning data ", err)
 	}
 	fmt.Println("Order accuraled: ", ord.Accural)
+
+	_, err = storage.db.ExecContext(ctx, `UPDATE users
+		SET balance = balance + $1
+		WHERE login = $2`, order.Accrual, login)
+	if err != nil {
+		logger.ErrorLogger("Error making an update request", err)
+	}
+
+	var user User
+	err = storage.db.QueryRowContext(ctx, `SELECT balance FROM users WHERE login = $1`, login).Scan(&user.Balance)
+	if err != nil {
+		logger.ErrorLogger("Error scanning data ", err)
+	}
+	fmt.Println("Balance: ", user.Balance)
 	return nil
 }
 
