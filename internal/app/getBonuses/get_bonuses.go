@@ -89,9 +89,18 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		Status:  order.Status,
 		Accural: order.Accrual,
 	}
+	// A struct designed to insert login and password data to users table
+	type User struct {
+		Login     string  `bun:"login"`
+		Password  string  `bun:"password"`
+		Balance   float32 `bun:"balance"`
+		Withdrawn float32 `bun:"withdrawn"`
+	}
+
+	var user User
 	db := bun.NewDB(storage.db, pgdialect.New())
 	_, err := db.NewUpdate().
-		Model(&ord).
+		Model(&user).
 		Set(`status = ?`, ord.Status).
 		Set(`accural = ?`, ord.Accural).
 		Where(`"order" = ?`, ord.Order).
