@@ -104,12 +104,12 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 		return gophermarterrors.ErrYouAlreadyLoadedOrder
 	}
 
-	go storage.GetStatusFromAccural(ctx, *userOrder)
+	go storage.GetStatusFromAccural(*userOrder)
 
 	return nil
 }
 
-func (storage *PsqURLlStorage) GetStatusFromAccural(ctx context.Context, order Order) {
+func (storage *PsqURLlStorage) GetStatusFromAccural(order Order) {
 	var wg sync.WaitGroup
 
 	orderJob := make(chan Order)
@@ -162,7 +162,9 @@ func (storage *PsqURLlStorage) GetStatusFromAccural(ctx context.Context, order O
 
 	go func() {
 		for orderToUpdate := range result {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			storage.UpdateStatus(ctx, orderToUpdate, order.Login)
+			cancel()
 		}
 	}()
 
