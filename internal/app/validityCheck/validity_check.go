@@ -25,4 +25,4 @@ func LuhnAlgorithm(orderNumber string) bool {
 }
 
 // An error indicating that order number is not passed by Lunh algorythm.
-var ErrWrongOrderNum = errors.New("Wrong order number")
+var ErrWrongOrderNum = errors.New("wrong order number")
