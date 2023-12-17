@@ -173,20 +173,6 @@ func (storage *PsqURLlStorage) GetStatusFromAccural(order Order) {
 
 func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
 
-	// _, err := storage.db.ExecContext(ctx, `UPDATE orders
-	// 	SET status = $1, accrual = $2
-	// 	WHERE "order" = $3`, order.Status, order.Accrual, order.Order)
-	// if err != nil {
-	// 	logger.ErrorLogger("Error making an update request", err)
-	// }
-
-	// _, err = storage.db.ExecContext(ctx, `UPDATE users
-	// 	SET balance = balance + $1
-	// 	WHERE login = $2`, order.Accrual, login)
-	// if err != nil {
-	// 	logger.ErrorLogger("Error making an update request", err)
-	// }
-
 	orderModel := new(Order)
 	userModel := new(User)
 
@@ -194,8 +180,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 
 	_, err := db.NewUpdate().
 		Model(orderModel).
-		Set("status = ?", order.Status).
-		Set("accrual = ?", order.Accrual).
+		Set("status = ?, accrual = ?", order.Status, order.Accrual).
 		Where(`"order" = ?`, order.Order).
 		Exec(ctx)
 	if err != nil {
