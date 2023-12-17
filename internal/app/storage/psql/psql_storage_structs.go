@@ -13,22 +13,6 @@ type User struct {
 	Withdrawn float32 `bun:"withdrawn"`
 }
 
-// A struct designed to insert login and order number to orders table
-type Order struct {
-	Login            string   `bun:"login" json:"-"`
-	Order            string   `bun:"order" json:"number"`
-	Status           string   `bun:"status" json:"status"`
-	UploadedAt       string   `bun:"uploaded_at" json:"uploaded_at"`
-	BonusesWithdrawn *float32 `bun:"bonuses_withdrawn"`
-	Accrual          *float32 `bun:"accrual" json:"accrual"`
-}
-
-type JsonOrder struct {
-	Order            string  `json:"order"`
-	Time             string  `json:"processed_at"`
-	BonusesWithdrawn float32 `json:"sum"`
-}
-
 // A struct designed to initialize users table in the database
 type Users struct {
 	Login     string  `bun:"type:varchar(255),unique"`

@@ -5,16 +5,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/knstch/gophermart/internal/app/handler"
 
-	// "github.com/knstch/gophermart/internal/app/middleware/compressor"
+	"github.com/gin-contrib/gzip"
 	cookielogin "github.com/knstch/gophermart/internal/app/middleware/cookieLogin"
-	// statuslogger "github.com/knstch/gophermart/internal/app/middleware/statusLogger"
 )
 
 func RequestsRouter(h *handler.Handler) *gin.Engine {
 	router := gin.Default()
 
-	// router.Use(statuslogger.WithLogger())
-	// router.Use(compressor.WithCompressor())
+	router.Use(gzip.Gzip(gzip.BestCompression))
 
 	api := router.Group("/api")
 	{

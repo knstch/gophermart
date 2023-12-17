@@ -9,6 +9,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/knstch/gophermart/cmd/config"
 	"github.com/knstch/gophermart/internal/app/logger"
+	"github.com/knstch/gophermart/internal/app/common"
 	validitycheck "github.com/knstch/gophermart/internal/app/validityCheck"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -66,7 +67,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 
 	bonusesWithdrawn := float32(0)
 
-	userOrder := &Order{
+	userOrder := &common.Order{
 		Login:            login,
 		Order:            orderNum,
 		UploadedAt:       now.Format(time.RFC3339),
@@ -81,7 +82,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 
 	db := bun.NewDB(storage.db, pgdialect.New())
 
-	var checkOrder Order
+	var checkOrder common.Order
 
 	err := db.NewSelect().
 		Model(&checkOrder).
@@ -115,16 +116,16 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 // "INVALID" or "PROCESSED" status. On each order status change we put an updated
 // data of OrderUpdateFromAccural type to the result channel and trigger
 // a function updating information in the DB.
-func (storage *PsqURLlStorage) GetStatusFromAccural(order Order) {
+func (storage *PsqURLlStorage) GetStatusFromAccural(order common.Order) {
 	var wg sync.WaitGroup
 
-	orderJob := make(chan Order)
+	orderJob := make(chan common.Order)
 	result := make(chan OrderUpdateFromAccural)
 
 	defer close(result)
 
 	wg.Add(1)
-	go func(jobs <-chan Order, result chan<- OrderUpdateFromAccural) {
+	go func(jobs <-chan common.Order, result chan<- OrderUpdateFromAccural) {
 
 		defer wg.Done()
 
@@ -184,7 +185,7 @@ func (storage *PsqURLlStorage) GetStatusFromAccural(order Order) {
 // we make an update in the DB.
 func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
 
-	orderModel := new(Order)
+	orderModel := new(common.Order)
 	userModel := new(User)
 
 	db := bun.NewDB(storage.db, pgdialect.New())
@@ -213,10 +214,10 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 
 // GetOrders accepts context, login and returns an error and all user's orders
 // ordered from old to new ones in json format.
-func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]Order, error) {
-	var allOrders []Order
+func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]common.Order, error) {
+	var allOrders []common.Order
 
-	order := new(Order)
+	order := new(common.Order)
 
 	db := bun.NewDB(storage.db, pgdialect.New())
 
@@ -233,13 +234,13 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]O
 	defer rows.Close()
 
 	for rows.Next() {
-		var orderRow Order
+		var orderRow common.Order
 		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Status, &orderRow.UploadedAt, &orderRow.BonusesWithdrawn, &orderRow.Accrual)
 		if err != nil {
 			logger.ErrorLogger("Error scanning data: ", err)
 			return nil, err
 		}
-		allOrders = append(allOrders, Order{
+		allOrders = append(allOrders, common.Order{
 			Order:      orderRow.Order,
 			UploadedAt: orderRow.UploadedAt,
 			Status:     orderRow.Status,
@@ -280,11 +281,11 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 
 	db := bun.NewDB(storage.db, pgdialect.New())
 
-	checkOrder := new(Order)
+	checkOrder := new(common.Order)
 
 	now := time.Now()
 
-	userOrder := &Order{
+	userOrder := &common.Order{
 		Login:            login,
 		Order:            orderNum,
 		UploadedAt:       now.Format(time.RFC3339),
@@ -328,10 +329,10 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 
 // This function accepts context and login, and returns an error and json response with orders where a user
 // spent bonuses.
-func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login string) ([]JsonOrder, error) {
-	var allOrders []JsonOrder
+func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login string) ([]common.OrdersWithSpentBonuses, error) {
+	var allOrders []common.OrdersWithSpentBonuses
 
-	order := new(Order)
+	order := new(common.Order)
 
 	db := bun.NewDB(storage.db, pgdialect.New())
 
@@ -350,14 +351,14 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 	noRows := true
 	for rows.Next() {
 		noRows = false
-		var orderRow Order
+		var orderRow common.Order
 		err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Status, &orderRow.UploadedAt, &orderRow.BonusesWithdrawn, &orderRow.Accrual)
 		if err != nil {
 			logger.ErrorLogger("Error scanning data: ", err)
 			return nil, err
 		}
 
-		allOrders = append(allOrders, JsonOrder{
+		allOrders = append(allOrders, common.OrdersWithSpentBonuses{
 			Order:            orderRow.Order,
 			Time:             orderRow.UploadedAt,
 			BonusesWithdrawn: *orderRow.BonusesWithdrawn,
@@ -367,6 +368,5 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 	if noRows {
 		return nil, ErrNoRows
 	}
-
 	return allOrders, nil
 }
