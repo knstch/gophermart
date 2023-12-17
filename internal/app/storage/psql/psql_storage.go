@@ -3,7 +3,6 @@ package psql
 
 import (
 	"context"
-	"encoding/json"
 	"sync"
 	"time"
 
@@ -214,7 +213,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 
 // GetOrders accepts context, login and returns an error and all user's orders
 // ordered from old to new ones in json format.
-func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]byte, error) {
+func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]Order, error) {
 	var allOrders []Order
 
 	order := new(Order)
@@ -248,12 +247,7 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]b
 		})
 	}
 
-	jsonAllOrders, err := json.Marshal(allOrders)
-	if err != nil {
-		logger.ErrorLogger("Error marshaling orders: ", err)
-	}
-
-	return jsonAllOrders, nil
+	return allOrders, nil
 }
 
 // GetBalance accepts context and login, and returns bonuses balance, withdraw
@@ -334,8 +328,8 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 
 // This function accepts context and login, and returns an error and json response with orders where a user
 // spent bonuses.
-func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login string) ([]byte, error) {
-	var allOrders []jsonOrder
+func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login string) ([]JsonOrder, error) {
+	var allOrders []JsonOrder
 
 	order := new(Order)
 
@@ -363,7 +357,7 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 			return nil, err
 		}
 
-		allOrders = append(allOrders, jsonOrder{
+		allOrders = append(allOrders, JsonOrder{
 			Order:            orderRow.Order,
 			Time:             orderRow.UploadedAt,
 			BonusesWithdrawn: *orderRow.BonusesWithdrawn,
@@ -374,11 +368,5 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 		return nil, ErrNoRows
 	}
 
-	jsonAllOrders, err := json.Marshal(allOrders)
-	if err != nil {
-		logger.ErrorLogger("Error marshaling orders: ", err)
-		return nil, err
-	}
-
-	return jsonAllOrders, nil
+	return allOrders, nil
 }

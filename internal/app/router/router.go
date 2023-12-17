@@ -7,13 +7,13 @@ import (
 
 	// "github.com/knstch/gophermart/internal/app/middleware/compressor"
 	cookielogin "github.com/knstch/gophermart/internal/app/middleware/cookieLogin"
-	statuslogger "github.com/knstch/gophermart/internal/app/middleware/statusLogger"
+	// statuslogger "github.com/knstch/gophermart/internal/app/middleware/statusLogger"
 )
 
 func RequestsRouter(h *handler.Handler) *gin.Engine {
 	router := gin.Default()
 
-	router.Use(statuslogger.WithLogger())
+	// router.Use(statuslogger.WithLogger())
 	// router.Use(compressor.WithCompressor())
 
 	api := router.Group("/api")

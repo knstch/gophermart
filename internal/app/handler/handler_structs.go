@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/knstch/gophermart/internal/app/storage/psql"
 )
 
 // An interface responsible for operations with a database.
@@ -11,10 +12,10 @@ type Storage interface {
 	Register(ctx context.Context, email string, password string) error
 	CheckCredentials(ctx context.Context, login string, password string) error
 	InsertOrder(ctx context.Context, login string, order string) error
-	GetOrders(ctx context.Context, login string) ([]byte, error)
+	GetOrders(ctx context.Context, login string) ([]psql.Order, error)
 	GetBalance(ctx context.Context, login string) (float32, float32, error)
 	SpendBonuses(ctx context.Context, login string, orderNum string, spendBonuses float32) error
-	GetOrdersWithBonuses(ctx context.Context, login string) ([]byte, error)
+	GetOrdersWithBonuses(ctx context.Context, login string) ([]psql.JsonOrder, error)
 }
 
 // A struct implementing Storage interface.

@@ -23,7 +23,7 @@ type Order struct {
 	Accrual          *float32 `bun:"accrual" json:"accrual"`
 }
 
-type jsonOrder struct {
+type JsonOrder struct {
 	Order            string  `json:"order"`
 	Time             string  `json:"processed_at"`
 	BonusesWithdrawn float32 `json:"sum"`

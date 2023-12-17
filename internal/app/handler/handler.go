@@ -2,7 +2,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -119,13 +118,7 @@ func (h *Handler) Balance(ctx *gin.Context) {
 		Withdrawn: withdrawn,
 	}
 
-	jsonUserBalance, err := json.Marshal(userBalance)
-	if err != nil {
-		logger.ErrorLogger("Error marshaling json", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
-	}
-
-	ctx.JSON(http.StatusOK, jsonUserBalance)
+	ctx.JSON(http.StatusOK, userBalance)
 }
 
 // A handler allowing a user to make an order using bonuses.
