@@ -144,7 +144,7 @@ func (h *Handler) WithdrawBonuses(ctx *gin.Context) {
 	case err != nil:
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 	}
-	ctx.JSON(http.StatusAccepted, gin.H{"message": "Bonuses successfully spent"})
+	ctx.JSON(http.StatusOK, gin.H{"message": "Bonuses successfully spent"})
 }
 
 // A handler used to get all user's orders with spent bonuses.
