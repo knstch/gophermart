@@ -7,153 +7,111 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgerrcode"
 	"github.com/knstch/gophermart/internal/app/cookie"
 	"github.com/knstch/gophermart/internal/app/logger"
-	cookielogin "github.com/knstch/gophermart/internal/app/middleware/cookieLogin"
 	"github.com/knstch/gophermart/internal/app/storage/psql"
 	validitycheck "github.com/knstch/gophermart/internal/app/validityCheck"
 )
 
 // A handler used to sign up a user setting an auth cookie.
-func (h *Handler) SignUp(res http.ResponseWriter, req *http.Request) {
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		logger.ErrorLogger("Error during opening body: ", err)
-	}
+func (h *Handler) SignUp(ctx *gin.Context) {
 	var userData credentials
 
-	err = json.Unmarshal(body, &userData)
-	if err != nil {
-		logger.ErrorLogger("Error unmarshaling data: ", err)
-		res.WriteHeader(http.StatusBadRequest)
-		res.Write([]byte("Wrong request"))
-		return
+	if err := ctx.ShouldBindJSON(&userData); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Wrong request"})
 	}
 
-	err = h.s.Register(req.Context(), userData.Login, userData.Password)
-	if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
-		res.WriteHeader(409)
-		res.Write([]byte("Login is already taken"))
-		return
-	} else if err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Internal Server Error"))
-		return
+	err := h.s.Register(ctx, userData.Login, userData.Password)
+	switch {
+	case errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code):
+		ctx.AbortWithStatusJSON(409, gin.H{"error": "Login is already taken"})
+	case err != nil:
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 	}
-	err = cookie.SetAuth(res, userData.Login)
+	err = cookie.SetAuth(ctx.Writer, userData.Login)
 	if err != nil {
 		logger.ErrorLogger("Can't set cookie: ", err)
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Internal Server Error"))
-		return
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 	}
-	res.WriteHeader(http.StatusOK)
-	res.Write([]byte("Successfully registred"))
+	ctx.JSON(http.StatusOK, gin.H{"message": "Successfully registered"})
 }
 
 // A handler used to authenticate a user setting an auth cookie.
-func (h *Handler) Auth(res http.ResponseWriter, req *http.Request) {
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		logger.ErrorLogger("Error during opening body: ", err)
-	}
-
+func (h *Handler) Auth(ctx *gin.Context) {
 	var userData credentials
 
-	err = json.Unmarshal(body, &userData)
-	if err != nil {
-		logger.ErrorLogger("Error unmarshaling data: ", err)
-		res.WriteHeader(http.StatusBadRequest)
-		res.Write([]byte("Wrong request"))
-		return
+	if err := ctx.ShouldBindJSON(&userData); err != nil {
+		logger.ErrorLogger("Wrong request: ", err)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Wrong request"})
 	}
 
-	err = h.s.CheckCredentials(req.Context(), userData.Login, userData.Password)
-
+	err := h.s.CheckCredentials(ctx, userData.Login, userData.Password)
 	if err != nil {
 		logger.ErrorLogger("Wrong email or password: ", err)
-		res.WriteHeader(401)
-		res.Write([]byte("Wrong email or password"))
-		return
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Wrong email or password"})
 	}
 
-	err = cookie.SetAuth(res, userData.Login)
+	err = cookie.SetAuth(ctx.Writer, userData.Login)
 	if err != nil {
 		logger.ErrorLogger("Can't set cookie: ", err)
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Internal Server Error"))
-		return
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 	}
 
-	res.WriteHeader(http.StatusOK)
-	res.Write([]byte("Successfully signed in"))
+	ctx.JSON(http.StatusOK, gin.H{"message": "Successfully signed in"})
 }
 
 // A handler used to upload a user's order.
-func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
-	body, err := io.ReadAll(req.Body)
+func (h *Handler) UploadOrder(ctx *gin.Context) {
+	body, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
 		logger.ErrorLogger("Error during opening body: ", err)
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Internal Server Error"))
-		return
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 	}
 
 	orderNum := string(body)
 
-	login := req.Context().Value(cookielogin.LoginKey).(string)
+	login := ctx.Value("login").(string)
 
-	err = h.s.InsertOrder(req.Context(), login, orderNum)
-	if errors.Is(err, psql.ErrAlreadyLoadedOrder) {
-		res.WriteHeader(409)
-		res.Write([]byte("Order is already loaded by another user"))
-		return
-	} else if errors.Is(err, psql.ErrYouAlreadyLoadedOrder) {
-		res.WriteHeader(200)
-		res.Write([]byte("Order is already loaded"))
-		return
-	} else if errors.Is(err, validitycheck.ErrWrongOrderNum) {
-		res.WriteHeader(422)
-		res.Write([]byte("Wrong order number"))
-		return
+	err = h.s.InsertOrder(ctx, login, orderNum)
+	switch {
+	case errors.Is(err, psql.ErrAlreadyLoadedOrder):
+		ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Order is already loaded by another user"})
+	case errors.Is(err, psql.ErrYouAlreadyLoadedOrder):
+		ctx.AbortWithStatusJSON(http.StatusOK, gin.H{"message": "Order is already loaded"})
+	case errors.Is(err, validitycheck.ErrWrongOrderNum):
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, gin.H{"error": "Wrong order number"})
+	default:
+		ctx.JSON(http.StatusAccepted, gin.H{"message": "Successfully loaded order"})
 	}
-	// go getbonuses.GetStatusFromAccural(orderNum, login)
-	res.WriteHeader(202)
-	res.Write([]byte("Successfully loaded ordred"))
 }
 
 // A handler used to get all user's orders.
-func (h *Handler) GetOrders(res http.ResponseWriter, req *http.Request) {
-	login := req.Context().Value(cookielogin.LoginKey).(string)
+func (h *Handler) GetOrders(ctx *gin.Context) {
+	login := ctx.Value("login").(string)
 
-	res.Header().Set("Content-Type", "application/json")
-	orders, err := h.s.GetOrders(req.Context(), login)
+	orders, err := h.s.GetOrders(ctx, login)
 	if err != nil {
 		logger.ErrorLogger("Error getting orders", err)
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Internal Server Error"))
-		return
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 	}
 
 	if len(orders) == 4 {
-		res.WriteHeader(204)
-		res.Write([]byte("You have no orders"))
-		return
+		ctx.AbortWithStatusJSON(http.StatusNoContent, gin.H{"message": "You have no orders"})
 	}
-	res.WriteHeader(http.StatusOK)
-	res.Write([]byte(orders))
+
+	ctx.JSON(http.StatusOK, orders)
 }
 
 // A handler used to check user's balance.
-func (h *Handler) Balance(res http.ResponseWriter, req *http.Request) {
-	login := req.Context().Value(cookielogin.LoginKey).(string)
+func (h *Handler) Balance(ctx *gin.Context) {
+	login := ctx.Value("login").(string)
 
-	balance, withdrawn, err := h.s.GetBalance(req.Context(), login)
+	balance, withdrawn, err := h.s.GetBalance(ctx, login)
 	if err != nil {
 		logger.ErrorLogger("Error getting balance", err)
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Internal Server Error"))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 	}
 
 	userBalance := balanceInfo{
@@ -164,74 +122,49 @@ func (h *Handler) Balance(res http.ResponseWriter, req *http.Request) {
 	jsonUserBalance, err := json.Marshal(userBalance)
 	if err != nil {
 		logger.ErrorLogger("Error marshaling json", err)
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Internal Server Error"))
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 	}
 
-	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusOK)
-	res.Write([]byte(jsonUserBalance))
+	ctx.JSON(http.StatusOK, jsonUserBalance)
 }
 
 // A handler allowing a user to make an order using bonuses.
-func (h *Handler) WithdrawBonuses(res http.ResponseWriter, req *http.Request) {
-	login := req.Context().Value(cookielogin.LoginKey).(string)
-
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		logger.ErrorLogger("Error during opening body: ", err)
-	}
+func (h *Handler) WithdrawBonuses(ctx *gin.Context) {
+	login := ctx.Value("login").(string)
 
 	var spendRequest getSpendBonusRequest
 
-	err = json.Unmarshal(body, &spendRequest)
-	if err != nil {
-		logger.ErrorLogger("Error unmarshaling data: ", err)
-		res.WriteHeader(http.StatusBadRequest)
-		res.Write([]byte("Wrong request"))
+	if err := ctx.ShouldBindJSON(&spendRequest); err != nil {
+		logger.ErrorLogger("Wrong request: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Wrong request"})
 		return
 	}
 
-	err = h.s.SpendBonuses(req.Context(), login, spendRequest.Order, spendRequest.Sum)
-	if errors.Is(err, psql.ErrNotEnoughBalance) {
-		res.WriteHeader(402)
-		res.Write([]byte("Not enough balance"))
-		return
-	} else if errors.Is(err, validitycheck.ErrWrongOrderNum) {
-		res.WriteHeader(422)
-		res.Write([]byte("Wrong order number"))
-		return
-	} else if errors.Is(err, psql.ErrAlreadyLoadedOrder) || errors.Is(err, psql.ErrYouAlreadyLoadedOrder) {
-		res.WriteHeader(409)
-		res.Write([]byte("Order is already loaded"))
-		return
-	} else if err != nil {
-		logger.ErrorLogger("Error spending bonuses", err)
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("Internal Server Error"))
-		return
+	err := h.s.SpendBonuses(ctx, login, spendRequest.Order, spendRequest.Sum)
+	switch {
+	case errors.Is(err, psql.ErrNotEnoughBalance):
+		ctx.AbortWithStatusJSON(http.StatusPaymentRequired, gin.H{"error": "Not enough balance"})
+	case errors.Is(err, validitycheck.ErrWrongOrderNum):
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, gin.H{"error": "Wrong order number"})
+	case errors.Is(err, psql.ErrAlreadyLoadedOrder) || errors.Is(err, psql.ErrYouAlreadyLoadedOrder):
+		ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Order is already loaded"})
+	case err != nil:
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 	}
-
-	res.WriteHeader(http.StatusOK)
-	res.Write([]byte("Bonuses successfully spent"))
+	ctx.JSON(http.StatusAccepted, gin.H{"message": "Bonuses successfully spent"})
 }
 
 // A handler used to get all user's orders with spent bonuses.
-func (h *Handler) GetSpendOrderBonuses(res http.ResponseWriter, req *http.Request) {
-	login := req.Context().Value(cookielogin.LoginKey).(string)
+func (h *Handler) GetSpendOrderBonuses(ctx *gin.Context) {
+	login := ctx.Value("login").(string)
 
-	ordersWithBonuses, err := h.s.GetOrdersWithBonuses(req.Context(), login)
-	if errors.Is(err, psql.ErrNoRows) {
-		res.WriteHeader(204)
-		res.Write([]byte("You have not spent any bonuses"))
-		return
-	} else if err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte("err"))
-		return
+	ordersWithBonuses, err := h.s.GetOrdersWithBonuses(ctx, login)
+	switch {
+	case errors.Is(err, psql.ErrNoRows):
+		ctx.AbortWithStatusJSON(http.StatusNoContent, gin.H{"message": "You have not spent any bonuses"})
+	case err != nil:
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error"})
 	}
 
-	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusOK)
-	res.Write([]byte(ordersWithBonuses))
+	ctx.JSON(http.StatusOK, ordersWithBonuses)
 }

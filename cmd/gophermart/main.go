@@ -8,6 +8,7 @@ import (
 	"os/signal"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/knstch/gophermart/cmd/gophermart/docs"
 	"github.com/knstch/gophermart/cmd/config"
 	"github.com/knstch/gophermart/internal/app/handler"
 	"github.com/knstch/gophermart/internal/app/logger"

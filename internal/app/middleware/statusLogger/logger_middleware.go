@@ -2,35 +2,17 @@
 package statuslogger
 
 import (
-	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
-
-// responseData saves response status code.
-type responseData struct {
-	status int
-}
-
-// loggingResponse contains responseData to get data of a request
-// and implements http.ResponseWriter interface.
-type loggingResponse struct {
-	http.ResponseWriter
-	responseData *responseData
-}
-
-// Modification of the WriteHeader intefrace saving status code to a variable.
-func (r *loggingResponse) WriteHeader(statusCode int) {
-	r.ResponseWriter.WriteHeader(statusCode)
-	r.responseData.status = statusCode
-}
 
 // Middleware for requests writing and logging URI, method, duration. Inside of the function
 // we implement a new "logFn" function
 // accepting request and response. In this function we swap a standard response interface
 // to a modified to write the statuscode.
-func WithLogger(h http.Handler) http.Handler {
+func WithLogger() gin.HandlerFunc {
 	var logger, err = zap.NewDevelopment()
 	var sugar = *logger.Sugar()
 	if err != nil {
@@ -38,31 +20,18 @@ func WithLogger(h http.Handler) http.Handler {
 	}
 	defer logger.Sync()
 
-	logFn := func(res http.ResponseWriter, req *http.Request) {
-		responseData := &responseData{
-			status: 0,
-		}
-		loggingRes := loggingResponse{
-			ResponseWriter: res,
-			responseData:   responseData,
-		}
+	return func(c *gin.Context) {
 
 		start := time.Now()
-
-		uri := req.RequestURI
-
-		method := req.Method
-
-		h.ServeHTTP(&loggingRes, req)
-
+		c.Next()
+		statusCode := c.Writer.Status()
 		duration := time.Since(start)
 
 		sugar.Infoln(
-			"uri", uri,
-			"method", method,
+			"uri", c.Request.RequestURI,
+			"method", c.Request.Method,
 			"duration", duration,
-			"status code", responseData.status,
+			"status code", statusCode,
 		)
 	}
-	return http.HandlerFunc(logFn)
 }
