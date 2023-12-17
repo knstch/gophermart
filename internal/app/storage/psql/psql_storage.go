@@ -1,3 +1,4 @@
+// Package psql provides methods to interact with a Posgres database.
 package psql
 
 import (
@@ -8,7 +9,6 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/knstch/gophermart/cmd/config"
-	gophermarterrors "github.com/knstch/gophermart/internal/app/gophermartErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
 	validitycheck "github.com/knstch/gophermart/internal/app/validityCheck"
 	"github.com/uptrace/bun"
@@ -77,7 +77,7 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 
 	isValid := validitycheck.LuhnAlgorithm(orderNum)
 	if !isValid {
-		return gophermarterrors.ErrWrongOrderNum
+		return validitycheck.ErrWrongOrderNum
 	}
 
 	db := bun.NewDB(storage.db, pgdialect.New())
@@ -99,9 +99,9 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 
 	}
 	if checkOrder.Login != login && checkOrder.Order == orderNum {
-		return gophermarterrors.ErrAlreadyLoadedOrder
+		return ErrAlreadyLoadedOrder
 	} else if checkOrder.Login == login && checkOrder.Order == orderNum {
-		return gophermarterrors.ErrYouAlreadyLoadedOrder
+		return ErrYouAlreadyLoadedOrder
 	}
 
 	go storage.GetStatusFromAccural(*userOrder)
@@ -109,6 +109,13 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 	return nil
 }
 
+// This function is designed to work asynchronously, it accepts an order and
+// creates 2 channels, orderJob working with Order type and result
+// working with OrderUpdateFromAccural type. As we put an order to orderJob,
+// we trigger a goroutine doing Get requests to the accrual system until we get
+// "INVALID" or "PROCESSED" status. On each order status change we put an updated
+// data of OrderUpdateFromAccural type to the result channel and trigger
+// a function updating information in the DB.
 func (storage *PsqURLlStorage) GetStatusFromAccural(order Order) {
 	var wg sync.WaitGroup
 
@@ -163,7 +170,10 @@ func (storage *PsqURLlStorage) GetStatusFromAccural(order Order) {
 	go func() {
 		for orderToUpdate := range result {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			storage.UpdateStatus(ctx, orderToUpdate, order.Login)
+			err := storage.UpdateStatus(ctx, orderToUpdate, order.Login)
+			if err != nil {
+				logger.ErrorLogger("Error updating status: ", err)
+			}
 			cancel()
 		}
 	}()
@@ -171,6 +181,8 @@ func (storage *PsqURLlStorage) GetStatusFromAccural(order Order) {
 	wg.Wait()
 }
 
+// This function works with 2 tables: orders and users. As we get a status update from the accrual system,
+// we make an update in the DB.
 func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
 
 	orderModel := new(Order)
@@ -184,7 +196,8 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		Where(`"order" = ?`, order.Order).
 		Exec(ctx)
 	if err != nil {
-		logger.ErrorLogger("Error making an update request", err)
+		logger.ErrorLogger("Error making an update request in order table", err)
+		return err
 	}
 
 	_, err = db.NewUpdate().
@@ -193,7 +206,8 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		Where(`login = ?`, login).
 		Exec(ctx)
 	if err != nil {
-		logger.ErrorLogger("Error making an update request", err)
+		logger.ErrorLogger("Error making an update request in user table", err)
+		return err
 	}
 	return nil
 }
@@ -267,7 +281,7 @@ func (storage *PsqURLlStorage) GetBalance(ctx context.Context, login string) (fl
 func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, orderNum string, spendBonuses float32) error {
 	bonusesAvailable, _, nil := storage.GetBalance(ctx, login)
 	if bonusesAvailable < spendBonuses {
-		return gophermarterrors.ErrNotEnoughBalance
+		return ErrNotEnoughBalance
 	}
 
 	db := bun.NewDB(storage.db, pgdialect.New())
@@ -299,9 +313,9 @@ func (storage *PsqURLlStorage) SpendBonuses(ctx context.Context, login string, o
 		}
 	}
 	if checkOrder.Login != login && checkOrder.Order == orderNum {
-		return gophermarterrors.ErrAlreadyLoadedOrder
+		return ErrAlreadyLoadedOrder
 	} else if checkOrder.Login == login && checkOrder.Order == orderNum {
-		return gophermarterrors.ErrYouAlreadyLoadedOrder
+		return ErrYouAlreadyLoadedOrder
 	}
 
 	_, err = db.NewUpdate().
@@ -357,7 +371,7 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 	}
 
 	if noRows {
-		return nil, gophermarterrors.ErrNoRows
+		return nil, ErrNoRows
 	}
 
 	jsonAllOrders, err := json.Marshal(allOrders)

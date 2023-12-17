@@ -1,3 +1,4 @@
+// Package cookielogin provides a middleware to parse a user login.
 package cookielogin
 
 import (
@@ -5,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/knstch/gophermart/internal/app/cookie"
-	gophermarterrors "github.com/knstch/gophermart/internal/app/gophermartErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
 )
 
@@ -35,7 +35,7 @@ func WithCookieLogin(h http.Handler) http.Handler {
 	fn := func(res http.ResponseWriter, req *http.Request) {
 		if req.URL.Path != "/api/user/register" && req.URL.Path != "/api/user/login" {
 			userLogin, err := cookie.GetCookie(req)
-			if err == gophermarterrors.ErrAuth {
+			if err == cookie.ErrAuth {
 				logger.ErrorLogger("Error getting cookie", err)
 				res.WriteHeader(401)
 				res.Write([]byte("You are not authenticated"))

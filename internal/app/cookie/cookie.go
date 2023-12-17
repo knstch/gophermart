@@ -1,11 +1,12 @@
+// Package cookie is used to manipulate cookies.
 package cookie
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/knstch/gophermart/cmd/config"
-	gophermarterrors "github.com/knstch/gophermart/internal/app/gophermartErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
 )
 
@@ -14,6 +15,9 @@ type Claims struct {
 	jwt.RegisteredClaims
 	Login string
 }
+
+// An error indication that a users is not authenticated.
+var ErrAuth = errors.New("you are not authenticated")
 
 // A function building a JWT token and retrning this token and error.
 func buildJWTString(login string) (string, error) {
@@ -73,7 +77,7 @@ func GetCookie(req *http.Request) (string, error) {
 	signedLogin, err := req.Cookie("Auth")
 	if err != nil {
 		logger.ErrorLogger("Error getting cookie", err)
-		return "", gophermarterrors.ErrAuth
+		return "", ErrAuth
 	}
 
 	login, err := getLogin(signedLogin.Value)

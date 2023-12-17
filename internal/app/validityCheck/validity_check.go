@@ -1,6 +1,10 @@
+// Package validity check provides a function that checks correctness of an order number.
 package validitycheck
 
-import "strconv"
+import (
+	"errors"
+	"strconv"
+)
 
 // LuhnAlgorithm checks an order number by luhn algorithm
 // and returns true if the number is correct and false if it's wrong.
@@ -19,3 +23,6 @@ func LuhnAlgorithm(orderNumber string) bool {
 	}
 	return sum%10 == 0
 }
+
+// An error indicating that order number is not passed by Lunh algorythm.
+var ErrWrongOrderNum = errors.New("Wrong order number")

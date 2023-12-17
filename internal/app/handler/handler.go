@@ -1,3 +1,4 @@
+// Package handler is used to serve http requests.
 package handler
 
 import (
@@ -8,9 +9,10 @@ import (
 
 	"github.com/jackc/pgerrcode"
 	"github.com/knstch/gophermart/internal/app/cookie"
-	gophermarterrors "github.com/knstch/gophermart/internal/app/gophermartErrors"
 	"github.com/knstch/gophermart/internal/app/logger"
 	cookielogin "github.com/knstch/gophermart/internal/app/middleware/cookieLogin"
+	"github.com/knstch/gophermart/internal/app/storage/psql"
+	validitycheck "github.com/knstch/gophermart/internal/app/validityCheck"
 )
 
 // A handler used to sign up a user setting an auth cookie.
@@ -103,15 +105,15 @@ func (h *Handler) UploadOrder(res http.ResponseWriter, req *http.Request) {
 	login := req.Context().Value(cookielogin.LoginKey).(string)
 
 	err = h.s.InsertOrder(req.Context(), login, orderNum)
-	if errors.Is(err, gophermarterrors.ErrAlreadyLoadedOrder) {
+	if errors.Is(err, psql.ErrAlreadyLoadedOrder) {
 		res.WriteHeader(409)
 		res.Write([]byte("Order is already loaded by another user"))
 		return
-	} else if errors.Is(err, gophermarterrors.ErrYouAlreadyLoadedOrder) {
+	} else if errors.Is(err, psql.ErrYouAlreadyLoadedOrder) {
 		res.WriteHeader(200)
 		res.Write([]byte("Order is already loaded"))
 		return
-	} else if errors.Is(err, gophermarterrors.ErrWrongOrderNum) {
+	} else if errors.Is(err, validitycheck.ErrWrongOrderNum) {
 		res.WriteHeader(422)
 		res.Write([]byte("Wrong order number"))
 		return
@@ -191,15 +193,15 @@ func (h *Handler) WithdrawBonuses(res http.ResponseWriter, req *http.Request) {
 	}
 
 	err = h.s.SpendBonuses(req.Context(), login, spendRequest.Order, spendRequest.Sum)
-	if errors.Is(err, gophermarterrors.ErrNotEnoughBalance) {
+	if errors.Is(err, psql.ErrNotEnoughBalance) {
 		res.WriteHeader(402)
 		res.Write([]byte("Not enough balance"))
 		return
-	} else if errors.Is(err, gophermarterrors.ErrWrongOrderNum) {
+	} else if errors.Is(err, validitycheck.ErrWrongOrderNum) {
 		res.WriteHeader(422)
 		res.Write([]byte("Wrong order number"))
 		return
-	} else if errors.Is(err, gophermarterrors.ErrAlreadyLoadedOrder) || errors.Is(err, gophermarterrors.ErrYouAlreadyLoadedOrder) {
+	} else if errors.Is(err, psql.ErrAlreadyLoadedOrder) || errors.Is(err, psql.ErrYouAlreadyLoadedOrder) {
 		res.WriteHeader(409)
 		res.Write([]byte("Order is already loaded"))
 		return
@@ -219,7 +221,7 @@ func (h *Handler) GetSpendOrderBonuses(res http.ResponseWriter, req *http.Reques
 	login := req.Context().Value(cookielogin.LoginKey).(string)
 
 	ordersWithBonuses, err := h.s.GetOrdersWithBonuses(req.Context(), login)
-	if errors.Is(err, gophermarterrors.ErrNoRows) {
+	if errors.Is(err, psql.ErrNoRows) {
 		res.WriteHeader(204)
 		res.Write([]byte("You have not spent any bonuses"))
 		return

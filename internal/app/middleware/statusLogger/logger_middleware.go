@@ -1,3 +1,4 @@
+// Package statuslogger provides a middleware to display requests and responses.
 package statuslogger
 
 import (
@@ -25,7 +26,7 @@ func (r *loggingResponse) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode
 }
 
-// Middleware for requests writing and logging URI, method, duration. Inside of the function 
+// Middleware for requests writing and logging URI, method, duration. Inside of the function
 // we implement a new "logFn" function
 // accepting request and response. In this function we swap a standard response interface
 // to a modified to write the statuscode.

@@ -1,3 +1,4 @@
+// Package router provides a requests router.
 package router
 
 import (

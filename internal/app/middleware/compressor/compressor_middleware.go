@@ -1,3 +1,4 @@
+// Package compressor provides a middleware to compress responses and decompress requests.
 package compressor
 
 import (

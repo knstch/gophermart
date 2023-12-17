@@ -2,6 +2,7 @@ package psql
 
 import (
 	"database/sql"
+	"errors"
 )
 
 // A struct designed to insert login and password data to users table
@@ -63,3 +64,15 @@ type OrderUpdateFromAccural struct {
 	Status  string  `json:"status"`
 	Accrual float32 `json:"accrual"`
 }
+
+// An error indicating that an order is loaded by another user.
+var ErrAlreadyLoadedOrder = errors.New("order is loaded by another user")
+
+// An error indicating that an order is loaded by user.
+var ErrYouAlreadyLoadedOrder = errors.New("order is loaded by you")
+
+// An error indictating that a user has not enough balance.
+var ErrNotEnoughBalance = errors.New("not enough balance")
+
+// An error indiating that no rows were found.
+var ErrNoRows = errors.New("no rows were found")

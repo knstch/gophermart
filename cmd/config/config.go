@@ -1,3 +1,4 @@
+// Package config is used to collect config data.
 package config
 
 import (
