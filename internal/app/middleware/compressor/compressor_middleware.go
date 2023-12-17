@@ -18,38 +18,38 @@ type gzipResponseWriter struct {
 }
 
 func WithCompressor() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		supportsGzip := strings.Contains(c.GetHeader("Accept-Encoding"), "gzip")
-		contentEncodingGzip := strings.Contains(c.GetHeader("Content-Encoding"), "gzip")
+	return func(ctx *gin.Context) {
+		supportsGzip := strings.Contains(ctx.GetHeader("Accept-Encoding"), "gzip")
+		contentEncodingGzip := strings.Contains(ctx.GetHeader("Content-Encoding"), "gzip")
 
 		if supportsGzip {
-			gz, err := gzip.NewWriterLevel(c.Writer, gzip.BestSpeed)
+			gz, err := gzip.NewWriterLevel(ctx.Writer, gzip.BestSpeed)
 			if err != nil {
 				logger.ErrorLogger("Error compressing data: ", err)
-				c.AbortWithStatus(http.StatusInternalServerError)
+				ctx.AbortWithStatus(http.StatusInternalServerError)
 				return
 			}
 			defer gz.Close()
 
-			c.Header("Content-Encoding", "gzip")
-			c.Writer = &gzipResponseWriter{
-				ResponseWriter: c.Writer,
-				writer:         io.MultiWriter(c.Writer, gz),
+			ctx.Header("Content-Encoding", "gzip")
+			ctx.Writer = &gzipResponseWriter{
+				ResponseWriter: ctx.Writer,
+				writer:         io.MultiWriter(ctx.Writer, gz),
 				gzipWriter:     gz,
 			}
 		}
 
 		if contentEncodingGzip {
-			reader, err := gzip.NewReader(c.Request.Body)
+			reader, err := gzip.NewReader(ctx.Request.Body)
 			if err != nil {
 				logger.ErrorLogger("Error decompressing data: ", err)
-				c.AbortWithStatus(http.StatusInternalServerError)
+				ctx.AbortWithStatus(http.StatusInternalServerError)
 				return
 			}
 			defer reader.Close()
-			c.Request.Body = reader
+			ctx.Request.Body = reader
 		}
 
-		c.Next()
+		ctx.Next()
 	}
 }

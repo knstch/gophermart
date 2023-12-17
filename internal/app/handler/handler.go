@@ -26,7 +26,7 @@ func (h *Handler) SignUp(ctx *gin.Context) {
 	err := h.s.Register(ctx, userData.Login, userData.Password)
 	switch {
 	case errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code):
-		ctx.AbortWithStatusJSON(409, gin.H{"error": "Login is already taken"})
+		ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Login is already taken"})
 	case err != nil:
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 	}
