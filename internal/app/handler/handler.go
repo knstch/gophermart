@@ -14,59 +14,98 @@ import (
 	validitycheck "github.com/knstch/gophermart/internal/app/validityCheck"
 )
 
-// A handler used to sign up a user setting an auth cookie.
+// @Summary SignUp
+// @Tags Auth
+// @Description API for user registration and setting an auth cookie
+// @Accept json
+// @Produce json
+// @Param userData body credentials true "Login and password"
+// @Success 200 {object} Message "Successfully registered"
+// @Failure 400 {object} ErrorMessage "Wrong request"
+// @Failure 409 {object} ErrorMessage "Login is already taken"
+// @Failure 500 {object} ErrorMessage "Internal Server Error"
+// @Router /user/register [post]
 func (h *Handler) SignUp(ctx *gin.Context) {
 	var userData credentials
 
 	if err := ctx.ShouldBindJSON(&userData); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Wrong request"})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, newErrorMessage("Wrong request"))
+		return
 	}
 
 	err := h.s.Register(ctx, userData.Login, userData.Password)
 	switch {
 	case errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code):
-		ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Login is already taken"})
+		ctx.AbortWithStatusJSON(http.StatusConflict, newErrorMessage("Login is already taken"))
+		return
 	case err != nil:
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, newErrorMessage("Internal Server Error"))
+		return
 	}
 	err = cookie.SetAuth(ctx.Writer, userData.Login)
 	if err != nil {
 		logger.ErrorLogger("Can't set cookie: ", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, newErrorMessage("Internal Server Error"))
+		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"message": "Successfully registered"})
+	ctx.JSON(http.StatusOK, newMessage("Successfully registered"))
 }
 
-// A handler used to authenticate a user setting an auth cookie.
+// @Summary Auth
+// @Tags Auth
+// @Description API for user authentication and setting an auth cookie
+// @Accept json
+// @Produce json
+// @Param userData body credentials true "Login and password"
+// @Success 200 {object} Message "Successfully signed in"
+// @Failure 400 {object} ErrorMessage "Wrong request"
+// @Failure 401 {object} ErrorMessage "Wrong email or password"
+// @Failure 500 {object} ErrorMessage "Internal Server Error"
+// @Router /user/login [post]
 func (h *Handler) Auth(ctx *gin.Context) {
 	var userData credentials
 
 	if err := ctx.ShouldBindJSON(&userData); err != nil {
 		logger.ErrorLogger("Wrong request: ", err)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Wrong request"})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, newErrorMessage("Wrong request"))
+		return
 	}
 
 	err := h.s.CheckCredentials(ctx, userData.Login, userData.Password)
 	if err != nil {
 		logger.ErrorLogger("Wrong email or password: ", err)
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Wrong email or password"})
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, newErrorMessage("Wrong email or password"))
+		return
 	}
 
 	err = cookie.SetAuth(ctx.Writer, userData.Login)
 	if err != nil {
 		logger.ErrorLogger("Can't set cookie: ", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, newErrorMessage("Internal Server Error"))
+		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Successfully signed in"})
+	ctx.JSON(http.StatusOK, newMessage("Successfully signed in"))
 }
 
-// A handler used to upload a user's order.
+// @Summary Upload order
+// @Tags Order
+// @Description Uploads an order to the server
+// @Accept plain
+// @Produce json
+// @Param orderNum body string true "Order number"
+// @Success 200 {object} Message "Order was successfully loaded before"
+// @Success 202 {object} Message "Order was successfully accepted"
+// @Failure 409 {object} ErrorMessage "Order is already loaded"
+// @Failure 422 {object} ErrorMessage "Wrong order number"
+// @Failure 500 {object} ErrorMessage "Internal Server Error"
+// @Router /user/orders [post]
 func (h *Handler) UploadOrder(ctx *gin.Context) {
 	body, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
 		logger.ErrorLogger("Error during opening body: ", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, newErrorMessage("Internal Server Error"))
+		return
 	}
 
 	orderNum := string(body)
@@ -76,41 +115,60 @@ func (h *Handler) UploadOrder(ctx *gin.Context) {
 	err = h.s.InsertOrder(ctx, login, orderNum)
 	switch {
 	case errors.Is(err, psql.ErrAlreadyLoadedOrder):
-		ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Order is already loaded by another user"})
+		ctx.AbortWithStatusJSON(http.StatusConflict, newErrorMessage("Order is already loaded by another user"))
+		return
 	case errors.Is(err, psql.ErrYouAlreadyLoadedOrder):
-		ctx.AbortWithStatusJSON(http.StatusOK, gin.H{"message": "Order is already loaded"})
+		ctx.AbortWithStatusJSON(http.StatusOK, newMessage("Order is already loaded"))
+		return
 	case errors.Is(err, validitycheck.ErrWrongOrderNum):
-		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, gin.H{"error": "Wrong order number"})
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, newErrorMessage("Wrong order number"))
+		return
 	default:
-		ctx.JSON(http.StatusAccepted, gin.H{"message": "Successfully loaded order"})
+		ctx.JSON(http.StatusAccepted, newMessage("Successfully loaded order"))
 	}
 }
 
-// A handler used to get all user's orders.
+// @Summary Get user's orders
+// @Description Retrieves the orders associated with the user
+// @Tags Order
+// @Produce json
+// @Success 200 {array} common.Order "A list of user's orders"
+// @Failure 204 {object} Message "A user has no orders"
+// @Failure 500 {object} ErrorMessage "Internal server error"
+// @Router /user/orders [get]
 func (h *Handler) GetOrders(ctx *gin.Context) {
 	login := ctx.Value("login").(string)
 
 	orders, err := h.s.GetOrders(ctx, login)
 	if err != nil {
 		logger.ErrorLogger("Error getting orders", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, newErrorMessage("Internal Server Error"))
+		return
 	}
 
 	if len(orders) == 4 {
-		ctx.AbortWithStatusJSON(http.StatusNoContent, gin.H{"message": "You have no orders"})
+		ctx.AbortWithStatusJSON(http.StatusNoContent, newMessage("You have no orders"))
+		return
 	}
 
 	ctx.JSON(http.StatusOK, orders)
 }
 
-// A handler used to check user's balance.
+// @Summary Get user's balance
+// @Description Retrieves the user's balance and withdrawn amount
+// @Tags Balance
+// @Produce json
+// @Success 200 {object} balanceInfo "User's balance"
+// @Failure 500 {object} ErrorMessage "Internal Server Error"
+// @Router /user/balance [get]
 func (h *Handler) Balance(ctx *gin.Context) {
 	login := ctx.Value("login").(string)
 
 	balance, withdrawn, err := h.s.GetBalance(ctx, login)
 	if err != nil {
 		logger.ErrorLogger("Error getting balance", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, newErrorMessage("Internal Server Error"))
+		return
 	}
 
 	userBalance := balanceInfo{
@@ -121,7 +179,19 @@ func (h *Handler) Balance(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, userBalance)
 }
 
-// A handler allowing a user to make an order using bonuses.
+// @Summary Withdraw user's bonuses
+// @Description Allows users to spend their bonuses
+// @Tags Balance
+// @Accept json
+// @Produce json
+// @Param orderData body getSpendBonusRequest true "Order number and withdraw amount"
+// @Success 200 {object} Message "Bonuses successfully spent"
+// @Failure 400 {object} ErrorMessage "Wrong request"
+// @Failure 402 {object} ErrorMessage "Not enough balance"
+// @Failure 422 {object} ErrorMessage "Wrong order number"
+// @Failure 409 {object} ErrorMessage "Order is already loaded"
+// @Failure 500 {object} ErrorMessage "Internal Server Error"
+// @Router /user/balance/withdraw [post]
 func (h *Handler) WithdrawBonuses(ctx *gin.Context) {
 	login := ctx.Value("login").(string)
 
@@ -129,34 +199,47 @@ func (h *Handler) WithdrawBonuses(ctx *gin.Context) {
 
 	if err := ctx.ShouldBindJSON(&spendRequest); err != nil {
 		logger.ErrorLogger("Wrong request: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Wrong request"})
+		ctx.JSON(http.StatusBadRequest, newErrorMessage("Wrong request"))
 		return
 	}
 
 	err := h.s.SpendBonuses(ctx, login, spendRequest.Order, spendRequest.Sum)
 	switch {
 	case errors.Is(err, psql.ErrNotEnoughBalance):
-		ctx.AbortWithStatusJSON(http.StatusPaymentRequired, gin.H{"error": "Not enough balance"})
+		ctx.AbortWithStatusJSON(http.StatusPaymentRequired, newErrorMessage("Not enough balance"))
+		return
 	case errors.Is(err, validitycheck.ErrWrongOrderNum):
-		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, gin.H{"error": "Wrong order number"})
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, newErrorMessage("Wrong order number"))
+		return
 	case errors.Is(err, psql.ErrAlreadyLoadedOrder) || errors.Is(err, psql.ErrYouAlreadyLoadedOrder):
-		ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Order is already loaded"})
+		ctx.AbortWithStatusJSON(http.StatusConflict, newErrorMessage("Order is already loaded"))
+		return
 	case err != nil:
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, newErrorMessage("Internal Server Error"))
+		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"message": "Bonuses successfully spent"})
+	ctx.JSON(http.StatusOK, newMessage("Bonuses successfully spent"))
 }
 
-// A handler used to get all user's orders with spent bonuses.
+// @Summary Get orders with spent bonuses
+// @Description Retrieves the orders with bonuses spent by the user
+// @Tags Order
+// @Produce json
+// @Success 200 {object} common.OrdersWithSpentBonuses "A list of orders with spent bonuses"
+// @Failure 204 {object} Message "You have not spent any bonuses"
+// @Failure 500 {object} ErrorMessage "Internal Server Error"
+// @Router /user/withdrawals [get]
 func (h *Handler) GetSpendOrderBonuses(ctx *gin.Context) {
 	login := ctx.Value("login").(string)
 
 	ordersWithBonuses, err := h.s.GetOrdersWithBonuses(ctx, login)
 	switch {
 	case errors.Is(err, psql.ErrNoRows):
-		ctx.AbortWithStatusJSON(http.StatusNoContent, gin.H{"message": "You have not spent any bonuses"})
+		ctx.AbortWithStatusJSON(http.StatusNoContent, newMessage("You have not spent any bonuses"))
+		return
 	case err != nil:
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error"})
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, newErrorMessage("Internal Server Error"))
+		return
 	}
 
 	ctx.JSON(http.StatusOK, ordersWithBonuses)

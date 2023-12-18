@@ -1,0 +1,277 @@
+basePath: /api
+definitions:
+  common.Order:
+    properties:
+      accrual:
+        type: number
+      bonusesWithdrawn:
+        type: number
+      number:
+        type: string
+      status:
+        type: string
+      uploaded_at:
+        type: string
+    type: object
+  common.OrdersWithSpentBonuses:
+    properties:
+      order:
+        type: string
+      processed_at:
+        type: string
+      sum:
+        type: number
+    type: object
+  handler.ErrorMessage:
+    properties:
+      error:
+        type: string
+    type: object
+  handler.Message:
+    properties:
+      message:
+        type: string
+    type: object
+  handler.balanceInfo:
+    properties:
+      current:
+        type: number
+      withdrawn:
+        type: number
+    type: object
+  handler.credentials:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+  handler.getSpendBonusRequest:
+    properties:
+      order:
+        type: string
+      sum:
+        type: number
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API server for users to sign up, sign it, upload orders, get and spend
+    bonuses, and check balance
+  title: Gophermart API
+  version: "1.0"
+paths:
+  /user/login:
+    post:
+      consumes:
+      - application/json
+      description: API for user authentication and setting an auth cookie
+      parameters:
+      - description: Login and password
+        in: body
+        name: userData
+        required: true
+        schema:
+          $ref: '#/definitions/handler.credentials'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully signed in
+          schema:
+            $ref: '#/definitions/handler.Message'
+        "400":
+          description: Wrong request
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+        "401":
+          description: Wrong email or password
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+      summary: Auth
+      tags:
+      - Auth
+    /user/register:
+    post:
+      consumes:
+      - application/json
+      description: API for user registration and setting an auth cookie
+      parameters:
+      - description: Login and password
+        in: body
+        name: userData
+        required: true
+        schema:
+          $ref: '#/definitions/handler.credentials'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully registered
+          schema:
+            $ref: '#/definitions/handler.Message'
+        "400":
+          description: Wrong request
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+        "409":
+          description: Login is already taken
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+      summary: SignUp
+      tags:
+      - Auth
+  /user/balance:
+    get:
+      description: Retrieves the user's balance and withdrawn amount
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User's balance
+          schema:
+            $ref: '#/definitions/handler.balanceInfo'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+      summary: Get user's balance
+      tags:
+      - Balance
+  /user/balance/withdraw:
+    post:
+      consumes:
+      - application/json
+      description: Allows users to spend their bonuses
+      parameters:
+      - description: Order number and withdraw amount
+        in: body
+        name: orderData
+        required: true
+        schema:
+          $ref: '#/definitions/handler.getSpendBonusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Bonuses successfully spent
+          schema:
+            $ref: '#/definitions/handler.Message'
+        "400":
+          description: Wrong request
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+        "402":
+          description: Not enough balance
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+        "409":
+          description: Order is already loaded
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+        "422":
+          description: Wrong order number
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+      summary: Withdraw user's bonuses
+      tags:
+      - Balance
+  /user/orders:
+    get:
+      description: Retrieves the orders associated with the user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: A list of user's orders
+          schema:
+            items:
+              $ref: '#/definitions/common.Order'
+            type: array
+        "204":
+          description: A user has no orders
+          schema:
+            $ref: '#/definitions/handler.Message'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+      summary: Get user's orders
+      tags:
+      - Order
+    post:
+      consumes:
+      - text/plain
+      description: Uploads an order to the server
+      parameters:
+      - description: Order number
+        in: body
+        name: orderNum
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order was successfully loaded before
+          schema:
+            $ref: '#/definitions/handler.Message'
+        "202":
+          description: Order was successfully accepted
+          schema:
+            $ref: '#/definitions/handler.Message'
+        "409":
+          description: Order is already loaded
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+        "422":
+          description: Wrong order number
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+      summary: Upload order
+      tags:
+      - Order
+  /user/withdrawals:
+    get:
+      description: Retrieves the orders with bonuses spent by the user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: A list of orders with spent bonuses
+          schema:
+            $ref: '#/definitions/common.OrdersWithSpentBonuses'
+        "204":
+          description: You have not spent any bonuses
+          schema:
+            $ref: '#/definitions/handler.Message'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorMessage'
+      summary: Get orders with spent bonuses
+      tags:
+      - Order
+securityDefinitions:
+  ApiKeyAuth:
+    in: cookie
+    name: Auth
+    type: apiKey
+swagger: "2.0"

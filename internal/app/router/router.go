@@ -6,14 +6,18 @@ import (
 	"github.com/knstch/gophermart/internal/app/handler"
 
 	"github.com/gin-contrib/gzip"
+	_ "github.com/knstch/gophermart/docs"
 	cookielogin "github.com/knstch/gophermart/internal/app/middleware/cookieLogin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// Router serving requests
 func RequestsRouter(h *handler.Handler) *gin.Engine {
 	router := gin.Default()
 
 	router.Use(gzip.Gzip(gzip.BestCompression))
-
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	api := router.Group("/api")
 	{
 		user := api.Group("/user")

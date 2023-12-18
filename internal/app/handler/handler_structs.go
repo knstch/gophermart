@@ -48,3 +48,27 @@ type getSpendBonusRequest struct {
 	Order string  `json:"order"`
 	Sum   float32 `json:"sum"`
 }
+
+// A struct used to generate a message for a user
+type Message struct {
+	Line string `json:"message"`
+}
+
+// A builder function returning a message
+func newMessage(msg string) *Message {
+	return &Message{
+		Line: msg,
+	}
+}
+
+// A struct used to generate error message for a user
+type ErrorMessage struct {
+	Line string `json:"error"`
+}
+
+// A builder function returning error message
+func newErrorMessage(msg string) *ErrorMessage {
+	return &ErrorMessage{
+		Line: msg,
+	}
+}

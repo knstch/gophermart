@@ -8,13 +8,22 @@ import (
 	"os/signal"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	_ "github.com/knstch/gophermart/cmd/gophermart/docs"
 	"github.com/knstch/gophermart/cmd/config"
 	"github.com/knstch/gophermart/internal/app/handler"
 	"github.com/knstch/gophermart/internal/app/logger"
 	"github.com/knstch/gophermart/internal/app/router"
 	"github.com/knstch/gophermart/internal/app/storage/psql"
 )
+
+// @title Gophermart API
+// @version 1.0
+// @description API server for users to sign up, sign it, upload orders, get and spend bonuses, and check balance
+
+// @host localhost:8080
+// @BasePath /api
+// @securitydefinitions.apikey ApiKeyAuth
+// @in cookie
+// @name Auth
 
 func main() {
 	config.ParseConfig()
