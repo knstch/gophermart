@@ -150,8 +150,8 @@ func (storage *PsqURLlStorage) Sync() {
 // we make an update in the DB.
 func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order common.OrderUpdateFromAccural) error {
 
-	orderModel := new(common.Order)
-	userModel := new(User)
+	orderModel := &common.Order{}
+	userModel := &User{}
 
 	db := bun.NewDB(storage.db, pgdialect.New())
 
@@ -166,7 +166,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order common.Or
 	}
 
 	err = db.NewSelect().
-		Model(&orderModel).
+		Model(orderModel).
 		Where(`"order" = ?`, order.Order).
 		Scan(ctx)
 	if err != nil {
