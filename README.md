@@ -73,3 +73,4 @@ BonusesWithdrawn. Type:float. | Accrual. Type:float. |
 
 ## Conclusion
 This API server provides a comprehensive set of endpoints for interacting with the accrual system and offers a structured project layout aimed at modularity and maintainability.
+
