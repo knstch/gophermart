@@ -177,7 +177,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order common.Or
 	_, err = db.NewUpdate().
 		Model(userModel).
 		Set("balance = balance + ?", order.Accrual).
-		Where(`login = ?`, orderModel.Login).
+		Where(`login = ?`, &orderModel.Login).
 		Exec(ctx)
 	if err != nil {
 		logger.ErrorLogger("Error making an update request in user table", err)
