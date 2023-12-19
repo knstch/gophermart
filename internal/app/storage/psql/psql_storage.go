@@ -156,7 +156,7 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order common.Or
 	db := bun.NewDB(storage.db, pgdialect.New())
 
 	_, err := db.NewUpdate().
-		Model(&orderModel).
+		Model(orderModel).
 		Set("status = ?, accrual = ?", order.Status, order.Accrual).
 		Where(`"order" = ?`, order.Order).
 		Exec(ctx)
