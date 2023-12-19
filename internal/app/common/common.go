@@ -8,6 +8,8 @@ import (
 	"github.com/knstch/gophermart/internal/app/logger"
 )
 
+// A function that sends orders to accrual system
+// and receives status updates with accrued bonuses.
 func GetStatusFromAccrual(order Order) OrderUpdateFromAccural {
 	client := resty.New().SetBaseURL(config.ReadyConfig.Accural)
 	var orderUpdate OrderUpdateFromAccural

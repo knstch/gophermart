@@ -104,10 +104,13 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 	return nil
 }
 
+// A function that looking for orders where bonuses were not
+// received, sends them to the accrual system, updates status and tops up balance.
 func (storage *PsqURLlStorage) Sync() {
 	ticker := time.NewTicker(time.Second * 1)
 
 	ctx := context.Background()
+
 	for range ticker.C {
 		var allUnfinishedOrders []common.Order
 
