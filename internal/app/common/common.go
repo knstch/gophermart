@@ -1,3 +1,4 @@
+// A package providing common structs and functions
 package common
 
 import (
