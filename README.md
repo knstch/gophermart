@@ -36,34 +36,34 @@ BonusesWithdrawn. Type:float. | Accrual. Type:float. |
 
 ## Project Structure
 The project contains the following folders:
-> cmd
->> accrual - Contains binary file of accrual system.
->>> accrual_windows_amd64.exe - accrual system count logic.
->> config - Contains config package.
->>> config.go - configuration setup functions and structs.
->> gophermart - Contains main package.
->>> main.go - main function.
-> docs - swagger documentation.
-> internal - contains dir app where is all logic.
->> app - contains all logic.
->>> common - contains common package, it has functions and structs that can be used from different packages.
->>>> common_structs.go - contains common structs that can be used from any package.
->>>> common.go - contains common functions that can be used from any package.
->>> cookie - contains cookie package that is used to interact with cookies.
->>>> cookie.go - contains functions to make JWT, set auth cookie, get login from JWT.
->>> handler - contains handler package with all handlers.
->>>> handler_structs.go - contains structs that are used to handler package.
->>>> handler.go - contains all handlers
->>> logger - contains logger package with loggin functionality.
->>>> logger.go - contains functions for info and error logging.
->>> middleware - contains middlewares.
->>>> cookieLogin - contains middleware working with auth cookies.
->>>>> cookie_login.go - contains middleware checking auth status, parsing login and passing it thru context.
->>> router - contains router package used to routing requests.
->>>> router.go - contains router.
->>> storage - contains psql package working with PostgreSQL.
->>>> init.go - initializes PostgreSQL tables.
->>>> psql_storage_structs.go - contains structs used in psql package.
->>>> psql_storage.go - contains functions interacting with PostgreSQL. 
->>> validityCheck - contains validitycheck package
->>>> validity_check.go - contains function checking validity of order number.
++ cmd
+  + accrual - Contains binary file of accrual system.
+    + accrual_windows_amd64.exe - accrual system count logic.
+  + config - Contains config package.
+    + config.go - configuration setup functions and structs.
+  + gophermart - Contains main package.
+    + main.go - main function.
++ docs - swagger documentation.
++ internal - contains dir app where is all logic.
+  + app - contains all logic.
+    + common - contains common package, it has functions and structs that can be used from different packages.
+      + common_structs.go - contains common structs that can be used from any package.
+      + common.go - contains common functions that can be used from any package.
+    + cookie - contains cookie package that is used to interact with cookies.
+      + cookie.go - contains functions to make JWT, set auth cookie, get login from JWT.
+    + handler - contains handler package with all handlers.
+      + handler_structs.go - contains structs that are used to handler package.
+      + handler.go - contains all handlers
+    + logger - contains logger package with loggin functionality.
+      + logger.go - contains functions for info and error logging.
+    + middleware - contains middlewares.
+      + cookieLogin - contains middleware working with auth cookies.
+        + cookie_login.go - contains middleware checking auth status, parsing login and passing it thru context.
+    + router - contains router package used to routing requests.
+        + router.go - contains router.
+    + storage - contains psql package working with PostgreSQL.
+        + init.go - initializes PostgreSQL tables.
+        + psql_storage_structs.go - contains structs used in psql package.
+        + psql_storage.go - contains functions interacting with PostgreSQL. 
+    + validityCheck - contains validitycheck package
+        + validity_check.go - contains function checking validity of order number.
