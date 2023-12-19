@@ -18,22 +18,6 @@ This API server interacts with an accrual system to provide functionality relate
 2. **GET** /user/orders: Retrieve user's orders.
 3. **GET** /user/withdrawals: Retrieve orders with spent bonuses.
 
-## Database Initialization
-The server initializes a PostgreSQL database with the following tables:
-### Users Table
-
-**Users**
-| Login. Type:varchar(255),unique. | Password. Type:varchar(255) | Balance. Type:float | Withdrawn. Type:float |
-|----------------------------------|-----------------------------|---------------------|-----------------------|
-|                                  |                             |                     |                       |
-
-**Orders**
-| Login. Type:varchar(255). | Order. Type:varchar(255),unique | Status. Type:varchar(255) | UploadedAt. Type:timestamp | 
-|---------------------------|---------------------------------|---------------------------|----------------------------|
-
-BonusesWithdrawn. Type:float. | Accrual. Type:float. |
-------------------------------|----------------------|
-
 ## Project Structure
 The project contains the following folders:
 + cmd
@@ -67,3 +51,25 @@ The project contains the following folders:
         + psql_storage.go - contains functions interacting with PostgreSQL. 
     + validityCheck - contains validitycheck package
         + validity_check.go - contains function checking validity of order number.
+        + validity_check_test.go - contains unit test for order number validator
+
+## Database Initialization
+The server initializes a PostgreSQL database with the following tables:
+### Tables
+
+**Users**
+| Login. Type:varchar(255),unique. | Password. Type:varchar(255) | Balance. Type:float | Withdrawn. Type:float |
+|----------------------------------|-----------------------------|---------------------|-----------------------|
+| Aboba                            | 12345678                    | 123.45              | 10.5                  |
+
+**Orders**
+| Login. Type:varchar(255). | Order. Type:varchar(255),unique | Status. Type:varchar(255) | UploadedAt. Type:timestamp | 
+|---------------------------|---------------------------------|---------------------------|----------------------------|
+| Aboba                     | 12345                           | NEW                       | "2023-12-17 20:13:42"      |
+
+BonusesWithdrawn. Type:float. | Accrual. Type:float. |
+------------------------------|----------------------|
+ 10.5                         | 500                  |
+
+## Conclusion
+This API server provides a comprehensive set of endpoints for interacting with the accrual system and offers a structured project layout aimed at modularity and maintainability.
