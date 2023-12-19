@@ -3,13 +3,10 @@ package psql
 
 import (
 	"context"
-	"sync"
 	"time"
 
-	"github.com/go-resty/resty/v2"
-	"github.com/knstch/gophermart/cmd/config"
-	"github.com/knstch/gophermart/internal/app/logger"
 	"github.com/knstch/gophermart/internal/app/common"
+	"github.com/knstch/gophermart/internal/app/logger"
 	validitycheck "github.com/knstch/gophermart/internal/app/validityCheck"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -104,86 +101,54 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 		return ErrYouAlreadyLoadedOrder
 	}
 
-	go storage.GetStatusFromAccural(*userOrder)
-
 	return nil
 }
 
-// This function is designed to work asynchronously, it accepts an order and
-// creates 2 channels, orderJob working with Order type and result
-// working with OrderUpdateFromAccural type. As we put an order to orderJob,
-// we trigger a goroutine doing Get requests to the accrual system until we get
-// "INVALID" or "PROCESSED" status. On each order status change we put an updated
-// data of OrderUpdateFromAccural type to the result channel and trigger
-// a function updating information in the DB.
-func (storage *PsqURLlStorage) GetStatusFromAccural(order common.Order) {
-	var wg sync.WaitGroup
+func (storage *PsqURLlStorage) Sync() {
+	ticker := time.NewTicker(time.Second * 1)
 
-	orderJob := make(chan common.Order)
-	result := make(chan OrderUpdateFromAccural)
+	ctx := context.Background()
+	for range ticker.C {
+		var allUnfinishedOrders []common.Order
 
-	defer close(result)
+		order := new(common.Order)
 
-	wg.Add(1)
-	go func(jobs <-chan common.Order, result chan<- OrderUpdateFromAccural) {
+		db := bun.NewDB(storage.db, pgdialect.New())
 
-		defer wg.Done()
-
-		client := resty.New().SetBaseURL(config.ReadyConfig.Accural)
-		job := <-jobs
-		lastResult := OrderUpdateFromAccural{}
-		for {
-			var orderUpdate OrderUpdateFromAccural
-
-			resp, err := client.R().
-				SetResult(&orderUpdate).
-				Get("/api/orders/" + job.Order)
-			if err != nil {
-				logger.ErrorLogger("Got error trying to send a get request from worker: ", err)
-				break
-			}
-			switch resp.StatusCode() {
-			case 429:
-				time.Sleep(3 * time.Second)
-			case 204:
-				time.Sleep(1 * time.Second)
-			}
-
-			if resp.StatusCode() == 500 {
-				logger.ErrorLogger("Internal server error in accural system: ", err)
-				break
-			}
-			if orderUpdate != lastResult {
-				lastResult = orderUpdate
-				result <- lastResult
-			}
-			if orderUpdate.Status == "INVALID" || orderUpdate.Status == "PROCESSED" {
-				break
-			}
-			time.Sleep(250 * time.Millisecond)
+		rows, err := db.NewSelect().
+			Model(order).
+			Where("status != ? AND status != ?", "PROCESSED", "INVALID").
+			Rows(ctx)
+		rows.Err()
+		if err != nil {
+			logger.ErrorLogger("Error getting data: ", err)
 		}
-	}(orderJob, result)
 
-	orderJob <- order
-	defer close(orderJob)
-
-	go func() {
-		for orderToUpdate := range result {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			err := storage.UpdateStatus(ctx, orderToUpdate, order.Login)
+		for rows.Next() {
+			var orderRow common.Order
+			err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Status, &orderRow.UploadedAt, &orderRow.BonusesWithdrawn, &orderRow.Accrual)
 			if err != nil {
-				logger.ErrorLogger("Error updating status: ", err)
+				logger.ErrorLogger("Error scanning data: ", err)
 			}
-			cancel()
+			allUnfinishedOrders = append(allUnfinishedOrders, common.Order{
+				Order:      orderRow.Order,
+				UploadedAt: orderRow.UploadedAt,
+				Status:     orderRow.Status,
+				Accrual:    orderRow.Accrual,
+			})
 		}
-	}()
+		rows.Close()
 
-	wg.Wait()
+		for _, unfinishedOrder := range allUnfinishedOrders {
+			finishedOrder := common.GetStatusFromAccrual(unfinishedOrder)
+			storage.UpdateStatus(ctx, finishedOrder)
+		}
+	}
 }
 
 // This function works with 2 tables: orders and users. As we get a status update from the accrual system,
 // we make an update in the DB.
-func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpdateFromAccural, login string) error {
+func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order common.OrderUpdateFromAccural) error {
 
 	orderModel := new(common.Order)
 	userModel := new(User)
@@ -200,10 +165,19 @@ func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order OrderUpda
 		return err
 	}
 
+	err = db.NewSelect().
+		Model(&orderModel).
+		Where(`"order" = ?`, order.Order).
+		Scan(ctx)
+	if err != nil {
+		logger.ErrorLogger("Error finding user's balance: ", err)
+		return err
+	}
+
 	_, err = db.NewUpdate().
 		Model(userModel).
 		Set("balance = balance + ?", order.Accrual).
-		Where(`login = ?`, login).
+		Where(`login = ?`, orderModel.Login).
 		Exec(ctx)
 	if err != nil {
 		logger.ErrorLogger("Error making an update request in user table", err)

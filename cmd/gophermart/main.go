@@ -24,7 +24,6 @@ import (
 // @securitydefinitions.apikey ApiKeyAuth
 // @in cookie
 // @name Auth
-
 func main() {
 	config.ParseConfig()
 	db, err := sql.Open("pgx", config.ReadyConfig.Database)
@@ -39,6 +38,8 @@ func main() {
 	storage := psql.NewPsqlStorage(db)
 
 	h := handler.NewHandler(storage)
+
+	go storage.Sync()
 
 	srv := http.Server{
 		Addr:    config.ReadyConfig.ServerAddr,

@@ -16,3 +16,9 @@ type OrdersWithSpentBonuses struct {
 	Time             string  `json:"processed_at"`
 	BonusesWithdrawn float32 `json:"sum"`
 }
+
+type OrderUpdateFromAccural struct {
+	Order   string  `json:"order"`
+	Status  string  `json:"status"`
+	Accrual float32 `json:"accrual"`
+}

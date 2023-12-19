@@ -43,12 +43,6 @@ func NewPsqlStorage(db *sql.DB) *PsqURLlStorage {
 	return &PsqURLlStorage{db: db}
 }
 
-type OrderUpdateFromAccural struct {
-	Order   string  `json:"order"`
-	Status  string  `json:"status"`
-	Accrual float32 `json:"accrual"`
-}
-
 // An error indicating that an order is loaded by another user.
 var ErrAlreadyLoadedOrder = errors.New("order is loaded by another user")
 
