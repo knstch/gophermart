@@ -17,6 +17,7 @@ type OrdersWithSpentBonuses struct {
 	BonusesWithdrawn float32 `json:"sum"`
 }
 
+// A struct designed to receive data from accrual system
 type OrderUpdateFromAccural struct {
 	Order   string  `json:"order"`
 	Status  string  `json:"status"`
