@@ -29,7 +29,7 @@ func NewHandler(s Storage) *Handler {
 }
 
 // A struct used to get and store data from a json requests.
-type credentials struct {
+type Credentials struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
 }

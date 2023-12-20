@@ -104,91 +104,6 @@ func (storage *PsqURLlStorage) InsertOrder(ctx context.Context, login string, or
 	return nil
 }
 
-// A function that looking for orders where bonuses were not
-// received, sends them to the accrual system, updates status and tops up balance.
-func (storage *PsqURLlStorage) Sync() {
-	ticker := time.NewTicker(time.Second * 1)
-
-	ctx := context.Background()
-
-	for range ticker.C {
-		var allUnfinishedOrders []common.Order
-
-		order := new(common.Order)
-
-		db := bun.NewDB(storage.db, pgdialect.New())
-
-		rows, err := db.NewSelect().
-			Model(order).
-			Where("status != ? AND status != ?", "PROCESSED", "INVALID").
-			Rows(ctx)
-		rows.Err()
-		if err != nil {
-			logger.ErrorLogger("Error getting data: ", err)
-		}
-
-		for rows.Next() {
-			var orderRow common.Order
-			err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Status, &orderRow.UploadedAt, &orderRow.BonusesWithdrawn, &orderRow.Accrual)
-			if err != nil {
-				logger.ErrorLogger("Error scanning data: ", err)
-			}
-			allUnfinishedOrders = append(allUnfinishedOrders, common.Order{
-				Order:      orderRow.Order,
-				UploadedAt: orderRow.UploadedAt,
-				Status:     orderRow.Status,
-				Accrual:    orderRow.Accrual,
-			})
-		}
-		rows.Close()
-
-		for _, unfinishedOrder := range allUnfinishedOrders {
-			finishedOrder := common.GetStatusFromAccrual(unfinishedOrder)
-			storage.UpdateStatus(ctx, finishedOrder)
-		}
-	}
-}
-
-// This function works with 2 tables: orders and users. As we get a status update from the accrual system,
-// we make an update in the DB.
-func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, order common.OrderUpdateFromAccural) error {
-
-	orderModel := &common.Order{}
-	userModel := &User{}
-
-	db := bun.NewDB(storage.db, pgdialect.New())
-
-	_, err := db.NewUpdate().
-		Model(orderModel).
-		Set("status = ?, accrual = ?", order.Status, order.Accrual).
-		Where(`"order" = ?`, order.Order).
-		Exec(ctx)
-	if err != nil {
-		logger.ErrorLogger("Error making an update request in order table", err)
-		return err
-	}
-
-	err = db.NewSelect().
-		Model(orderModel).
-		Where(`"order" = ?`, order.Order).
-		Scan(ctx)
-	if err != nil {
-		logger.ErrorLogger("Error finding user's balance: ", err)
-		return err
-	}
-
-	_, err = db.NewUpdate().
-		Model(userModel).
-		Set("balance = balance + ?", order.Accrual).
-		Where(`login = ?`, &orderModel.Login).
-		Exec(ctx)
-	if err != nil {
-		logger.ErrorLogger("Error making an update request in user table", err)
-		return err
-	}
-	return nil
-}
-
 // GetOrders accepts context, login and returns an error and all user's orders
 // ordered from old to new ones in json format.
 func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]common.Order, error) {
@@ -346,4 +261,81 @@ func (storage *PsqURLlStorage) GetOrdersWithBonuses(ctx context.Context, login s
 		return nil, ErrNoRows
 	}
 	return allOrders, nil
+}
+
+// A function that looking for orders where bonuses were not
+// received, sends them to the accrual system, updates status and tops up balance.
+func (storage *PsqURLlStorage) Sync() {
+	ticker := time.NewTicker(time.Second * 1)
+
+	ctx := context.Background()
+
+	for range ticker.C {
+		var allUnfinishedOrders []common.Order
+
+		order := new(common.Order)
+
+		db := bun.NewDB(storage.db, pgdialect.New())
+
+		rows, err := db.NewSelect().
+			Model(order).
+			Where("status != ? AND status != ?", "PROCESSED", "INVALID").
+			Rows(ctx)
+		rows.Err()
+		if err != nil {
+			logger.ErrorLogger("Error getting data: ", err)
+		}
+
+		for rows.Next() {
+			var orderRow common.Order
+			err := rows.Scan(&orderRow.Login, &orderRow.Order, &orderRow.Status, &orderRow.UploadedAt, &orderRow.BonusesWithdrawn, &orderRow.Accrual)
+			if err != nil {
+				logger.ErrorLogger("Error scanning data: ", err)
+			}
+			allUnfinishedOrders = append(allUnfinishedOrders, common.Order{
+				Order:      orderRow.Order,
+				UploadedAt: orderRow.UploadedAt,
+				Status:     orderRow.Status,
+				Accrual:    orderRow.Accrual,
+				Login:      orderRow.Login,
+			})
+		}
+		rows.Close()
+
+		for _, unfinishedOrder := range allUnfinishedOrders {
+			finishedOrder := common.GetStatusFromAccrual(unfinishedOrder)
+			storage.UpdateStatus(ctx, finishedOrder, unfinishedOrder.Login)
+		}
+	}
+}
+
+// This function works with 2 tables: orders and users. As we get a status update from the accrual system,
+// we make an update in the DB.
+func (storage *PsqURLlStorage) UpdateStatus(ctx context.Context, orderFromAccural common.OrderUpdateFromAccural, login string) error {
+
+	orderModel := &common.Order{}
+	userModel := &User{}
+
+	db := bun.NewDB(storage.db, pgdialect.New())
+
+	_, err := db.NewUpdate().
+		Model(orderModel).
+		Set("status = ?, accrual = ?", orderFromAccural.Status, orderFromAccural.Accrual).
+		Where(`"order" = ?`, orderFromAccural.Order).
+		Exec(ctx)
+	if err != nil {
+		logger.ErrorLogger("Error making an update request in order table", err)
+		return err
+	}
+
+	_, err = db.NewUpdate().
+		Model(userModel).
+		Set("balance = balance + ?", orderFromAccural.Accrual).
+		Where(`login = ?`, login).
+		Exec(ctx)
+	if err != nil {
+		logger.ErrorLogger("Error making an update request in user table", err)
+		return err
+	}
+	return nil
 }

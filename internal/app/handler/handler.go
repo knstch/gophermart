@@ -26,9 +26,14 @@ import (
 // @Failure 500 {object} ErrorMessage "Internal Server Error"
 // @Router /user/register [post]
 func (h *Handler) SignUp(ctx *gin.Context) {
-	var userData credentials
+	var userData Credentials
 
 	if err := ctx.ShouldBindJSON(&userData); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, newErrorMessage("Wrong request"))
+		return
+	}
+
+	if userData.Login == "" || userData.Password == "" {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, newErrorMessage("Wrong request"))
 		return
 	}
@@ -63,7 +68,7 @@ func (h *Handler) SignUp(ctx *gin.Context) {
 // @Failure 500 {object} ErrorMessage "Internal Server Error"
 // @Router /user/login [post]
 func (h *Handler) Auth(ctx *gin.Context) {
-	var userData credentials
+	var userData Credentials
 
 	if err := ctx.ShouldBindJSON(&userData); err != nil {
 		logger.ErrorLogger("Wrong request: ", err)
@@ -229,7 +234,7 @@ func (h *Handler) WithdrawBonuses(ctx *gin.Context) {
 // @Failure 204 {object} Message "You have not spent any bonuses"
 // @Failure 500 {object} ErrorMessage "Internal Server Error"
 // @Router /user/withdrawals [get]
-func (h *Handler) GetSpendOrderBonuses(ctx *gin.Context) {
+func (h *Handler) GetOrderWithSpentBonuses(ctx *gin.Context) {
 	login := ctx.Value("login").(string)
 
 	ordersWithBonuses, err := h.s.GetOrdersWithBonuses(ctx, login)

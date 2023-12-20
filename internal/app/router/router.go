@@ -27,7 +27,7 @@ func RequestsRouter(h *handler.Handler) *gin.Engine {
 
 			user.Use(cookielogin.WithCookieLogin())
 			{
-				user.GET("/withdrawals", h.GetSpendOrderBonuses)
+				user.GET("/withdrawals", h.GetOrderWithSpentBonuses)
 
 				orders := user.Group("/orders")
 				{

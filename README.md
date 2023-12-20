@@ -5,6 +5,9 @@
 This API server interacts with an accrual system to provide functionality related to user balance, authentication, and order management. It utilizes PostgreSQL for data storage, Gin framework for routing and serving requests. The server includes endpoints for retrieving user balance, withdrawing bonuses, user registration and authentication, as well as uploading and retrieving orders. Additionally, the server incorporates a middleware to check user authentication via cookies and compress data. 
 
 ## Endpoints
+
+All endpoints can be checked and tested in Swagger by this link: http://localhost:8080/swagger/index.html#/.
+
 ### Balance
 1. **GET** /user/balance: Retrieve user's balance, including withdrawn amount.
 2. **POST** /user/balance/withdraw: Withdraw user's bonuses.
