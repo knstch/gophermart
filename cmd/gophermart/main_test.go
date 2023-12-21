@@ -380,6 +380,7 @@ func TestUploadOrder(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			getCookieRes := httptest.NewRecorder()
+			defer getCookieRes.Result().Body.Close()
 			if tt.name != "#6 upload order without cookie" {
 				getCookieReqBody := `{"login": "` + tt.reqest.user.login + `","password": "` + tt.reqest.user.password + `"}`
 				getCookieReq := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/user/login", bytes.NewBuffer([]byte(getCookieReqBody)))
@@ -388,7 +389,6 @@ func TestUploadOrder(t *testing.T) {
 			}
 
 			cookies := getCookieRes.Result().Cookies()
-			getCookieRes.Result().Body.Close()
 
 			req := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/user/orders/", bytes.NewBuffer([]byte(tt.reqest.body)))
 			req.Header.Set("Content-Type", tt.reqest.contentType)
@@ -488,7 +488,7 @@ func TestGetOrders(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			getCookieRes := httptest.NewRecorder()
-
+			defer getCookieRes.Result().Body.Close()
 			switch tt.name {
 			case "#2 if user don't have orders":
 				getCookieReqBody := `{"login": "` + tt.reqest.user.login + `","password": "` + tt.reqest.user.password + `"}`
@@ -506,7 +506,6 @@ func TestGetOrders(t *testing.T) {
 			}
 
 			cookies := getCookieRes.Result().Cookies()
-			getCookieRes.Result().Body.Close()
 
 			req := httptest.NewRequest(http.MethodGet, "http://localhost:8080/api/user/orders/", nil)
 			for _, cookie := range cookies {
