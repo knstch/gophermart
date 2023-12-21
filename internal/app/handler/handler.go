@@ -2,6 +2,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -28,7 +29,10 @@ import (
 func (h *Handler) SignUp(ctx *gin.Context) {
 	var userData Credentials
 
-	if err := ctx.ShouldBindJSON(&userData); err != nil {
+	decoder := json.NewDecoder(ctx.Request.Body)
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&userData)
+	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, newErrorMessage("Wrong request"))
 		return
 	}
@@ -38,7 +42,7 @@ func (h *Handler) SignUp(ctx *gin.Context) {
 		return
 	}
 
-	err := h.s.Register(ctx, userData.Login, userData.Password)
+	err = h.s.Register(ctx, userData.Login, userData.Password)
 	switch {
 	case errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code):
 		ctx.AbortWithStatusJSON(http.StatusConflict, newErrorMessage("Login is already taken"))
@@ -70,15 +74,16 @@ func (h *Handler) SignUp(ctx *gin.Context) {
 func (h *Handler) Auth(ctx *gin.Context) {
 	var userData Credentials
 
-	if err := ctx.ShouldBindJSON(&userData); err != nil {
-		logger.ErrorLogger("Wrong request: ", err)
+	decoder := json.NewDecoder(ctx.Request.Body)
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&userData)
+	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, newErrorMessage("Wrong request"))
 		return
 	}
 
-	err := h.s.CheckCredentials(ctx, userData.Login, userData.Password)
+	err = h.s.CheckCredentials(ctx, userData.Login, userData.Password)
 	if err != nil {
-		logger.ErrorLogger("Wrong email or password: ", err)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, newErrorMessage("Wrong email or password"))
 		return
 	}
@@ -151,7 +156,7 @@ func (h *Handler) GetOrders(ctx *gin.Context) {
 		return
 	}
 
-	if len(orders) == 4 {
+	if len(orders) == 0 {
 		ctx.AbortWithStatusJSON(http.StatusNoContent, newMessage("You have no orders"))
 		return
 	}

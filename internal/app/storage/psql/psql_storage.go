@@ -139,7 +139,6 @@ func (storage *PsqURLlStorage) GetOrders(ctx context.Context, login string) ([]c
 			Accrual:    orderRow.Accrual,
 		})
 	}
-
 	return allOrders, nil
 }
 
