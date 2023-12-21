@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"math/rand"
 	"net/http"
@@ -9,14 +10,17 @@ import (
 	"testing"
 
 	"github.com/knstch/gophermart/cmd/config"
+	"github.com/knstch/gophermart/internal/app/common"
 	"github.com/knstch/gophermart/internal/app/handler"
 	"github.com/knstch/gophermart/internal/app/logger"
 	"github.com/knstch/gophermart/internal/app/router"
 	"github.com/knstch/gophermart/internal/app/storage/psql"
 	"github.com/stretchr/testify/assert"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
 )
 
-func LoginGenerator(length int) string {
+func loginGenerator(length int) string {
 	chars := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	result := make([]byte, length)
 	for i := 0; i < length; i++ {
@@ -25,8 +29,27 @@ func LoginGenerator(length int) string {
 	return string(result)
 }
 
-var testLogin = "aboba"
-var testPassword = "12345"
+type testUser struct {
+	login    string
+	password string
+}
+
+var testUserOne = testUser{
+	login:    loginGenerator(10),
+	password: "12345",
+}
+
+var testUserTwo = testUser{
+	login:    loginGenerator(10),
+	password: "12345",
+}
+
+var testUserThree = testUser{
+	login:    loginGenerator(10),
+	password: "12345",
+}
+
+var orderNum = "5105105105105100"
 
 func TestSignUp(t *testing.T) {
 	config.ParseConfig()
@@ -65,7 +88,7 @@ func TestSignUp(t *testing.T) {
 			},
 			reqest: request{
 				contentType: "application/json",
-				body:        `{"login": "` + testLogin + `","password": "` + testPassword + `"}`,
+				body:        `{"login": "` + testUserOne.login + `","password": "` + testUserOne.password + `"}`,
 			},
 		},
 		{
@@ -77,7 +100,7 @@ func TestSignUp(t *testing.T) {
 			},
 			reqest: request{
 				contentType: "application/json",
-				body:        `{"login": "` + testLogin + `","password": "` + testPassword + `"}`,
+				body:        `{"login": "` + testUserOne.login + `","password": "` + testUserOne.password + `"}`,
 			},
 		},
 		{
@@ -89,7 +112,7 @@ func TestSignUp(t *testing.T) {
 			},
 			reqest: request{
 				contentType: "application/json",
-				body:        `{"password": "` + testPassword + `"}`,
+				body:        `{"password": "` + testUserOne.password + `"}`,
 			},
 		},
 		{
@@ -101,7 +124,7 @@ func TestSignUp(t *testing.T) {
 			},
 			reqest: request{
 				contentType: "application/json",
-				body:        `{"login": "` + testLogin + `"}`,
+				body:        `{"login": "` + testUserOne.login + `"}`,
 			},
 		},
 		{
@@ -137,7 +160,19 @@ func TestSignUp(t *testing.T) {
 			},
 			reqest: request{
 				contentType: "application/json",
-				body:        `{"login": "` + testLogin + `","password": ""}`,
+				body:        `{"login": "` + testUserOne.login + `","password": ""}`,
+			},
+		},
+		{
+			name: "#8 sign up another user",
+			want: want{
+				statusCode:  200,
+				contentType: "application/json; charset=utf-8",
+				body:        `{"message":"Successfully registered"}`,
+			},
+			reqest: request{
+				contentType: "application/json",
+				body:        `{"login": "` + testUserTwo.login + `","password": "` + testUserTwo.password + `"}`,
 			},
 		},
 	}
@@ -157,7 +192,6 @@ func TestSignUp(t *testing.T) {
 }
 
 func TestAuth(t *testing.T) {
-	config.ParseConfig()
 	db, err := sql.Open("pgx", config.ReadyConfig.Database)
 	if err != nil {
 		logger.ErrorLogger("Can't open connection: ", err)
@@ -193,7 +227,7 @@ func TestAuth(t *testing.T) {
 			},
 			reqest: request{
 				contentType: "application/json",
-				body:        `{"login": "` + testLogin + `","password": "` + testPassword + `"}`,
+				body:        `{"login": "` + testUserOne.login + `","password": "` + testUserOne.password + `"}`,
 			},
 		},
 		{
@@ -205,7 +239,7 @@ func TestAuth(t *testing.T) {
 			},
 			reqest: request{
 				contentType: "application/json",
-				body:        `{"213ssd": "` + testLogin + `","passwordasd": "` + testPassword + `"}`,
+				body:        `{"213ssd": "` + testUserOne.login + `","passwordasd": "` + testUserOne.password + `"}`,
 			},
 		},
 		{
@@ -217,7 +251,7 @@ func TestAuth(t *testing.T) {
 			},
 			reqest: request{
 				contentType: "application/json",
-				body:        `{"login": "` + testLogin + `14","password": "` + testPassword + `"}`,
+				body:        `{"login": "` + testUserOne.login + `14","password": "` + testUserOne.password + `"}`,
 			},
 		},
 	}
@@ -237,7 +271,6 @@ func TestAuth(t *testing.T) {
 }
 
 func TestUploadOrder(t *testing.T) {
-	config.ParseConfig()
 	db, err := sql.Open("pgx", config.ReadyConfig.Database)
 	if err != nil {
 		logger.ErrorLogger("Can't open connection: ", err)
@@ -257,7 +290,7 @@ func TestUploadOrder(t *testing.T) {
 	type request struct {
 		contentType string
 		body        string
-		cookie      http.Cookie
+		user        testUser
 	}
 
 	tests := []struct {
@@ -274,12 +307,8 @@ func TestUploadOrder(t *testing.T) {
 			},
 			reqest: request{
 				contentType: "text/plain; charset=utf-8",
-				body:        `5105105105105100`,
-				cookie: http.Cookie{
-					Name:  "Auth",
-					Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6ImFiZSJ9.oO_0Lz-4YxuNZFhX5Od2Do1Kr-3srOnN5cGPuyKzZ3Q",
-					Path:  "/",
-				},
+				body:        orderNum,
+				user:        testUserOne,
 			},
 		},
 		{
@@ -291,12 +320,8 @@ func TestUploadOrder(t *testing.T) {
 			},
 			reqest: request{
 				contentType: "text/plain; charset=utf-8",
-				body:        `5105105105105100`,
-				cookie: http.Cookie{
-					Name:  "Auth",
-					Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6ImFiZSJ9.oO_0Lz-4YxuNZFhX5Od2Do1Kr-3srOnN5cGPuyKzZ3Q",
-					Path:  "/",
-				},
+				body:        orderNum,
+				user:        testUserOne,
 			},
 		},
 		{
@@ -309,11 +334,7 @@ func TestUploadOrder(t *testing.T) {
 			reqest: request{
 				contentType: "text/plain; charset=utf-8",
 				body:        `12345`,
-				cookie: http.Cookie{
-					Name:  "Auth",
-					Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6ImFiZSJ9.oO_0Lz-4YxuNZFhX5Od2Do1Kr-3srOnN5cGPuyKzZ3Q",
-					Path:  "/",
-				},
+				user:        testUserOne,
 			},
 		},
 		{
@@ -326,11 +347,7 @@ func TestUploadOrder(t *testing.T) {
 			reqest: request{
 				contentType: "text/plain; charset=utf-8",
 				body:        `30569309025904`,
-				cookie: http.Cookie{
-					Name:  "Auth",
-					Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6ImFiZTIifQ.s0v16E6uFXT6iwodOXJhenKvof2_dvg6qOwbFr2IsO8",
-					Path:  "/",
-				},
+				user:        testUserTwo,
 			},
 		},
 		{
@@ -343,11 +360,7 @@ func TestUploadOrder(t *testing.T) {
 			reqest: request{
 				contentType: "text/plain; charset=utf-8",
 				body:        `30569309025904`,
-				cookie: http.Cookie{
-					Name:  "Auth",
-					Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6ImFiZSJ9.oO_0Lz-4YxuNZFhX5Od2Do1Kr-3srOnN5cGPuyKzZ3Q",
-					Path:  "/",
-				},
+				user:        testUserOne,
 			},
 		},
 		{
@@ -360,20 +373,27 @@ func TestUploadOrder(t *testing.T) {
 			reqest: request{
 				contentType: "text/plain; charset=utf-8",
 				body:        `30569309025904`,
-				cookie: http.Cookie{
-					Name:  "1",
-					Value: "2",
-					Path:  "/",
-				},
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			getCookieRes := httptest.NewRecorder()
+			if tt.name != "#6 upload order without cookie" {
+				getCookieReqBody := `{"login": "` + tt.reqest.user.login + `","password": "` + tt.reqest.user.password + `"}`
+				getCookieReq := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/user/login", bytes.NewBuffer([]byte(getCookieReqBody)))
+				getCookieReq.Header.Set("Content-Type", tt.reqest.contentType)
+				router.ServeHTTP(getCookieRes, getCookieReq)
+			}
+
+			cookies := getCookieRes.Result().Cookies()
+
 			req := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/user/orders/", bytes.NewBuffer([]byte(tt.reqest.body)))
 			req.Header.Set("Content-Type", tt.reqest.contentType)
-			req.AddCookie(&tt.reqest.cookie)
+			for _, cookie := range cookies {
+				req.AddCookie(cookie)
+			}
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
 
@@ -385,7 +405,6 @@ func TestUploadOrder(t *testing.T) {
 }
 
 func TestGetOrders(t *testing.T) {
-	config.ParseConfig()
 	db, err := sql.Open("pgx", config.ReadyConfig.Database)
 	if err != nil {
 		logger.ErrorLogger("Can't open connection: ", err)
@@ -396,6 +415,17 @@ func TestGetOrders(t *testing.T) {
 
 	router := router.RequestsRouter(h)
 
+	var orderTest common.Order
+	ctx := context.Background()
+	dbBun := bun.NewDB(db, pgdialect.New())
+	err = dbBun.NewSelect().
+		Model(&orderTest).
+		Where(`"order" = ?`, orderNum).
+		Scan(ctx)
+	if err != nil {
+		logger.ErrorLogger("Error making request to DB", err)
+	}
+
 	type want struct {
 		statusCode  int
 		contentType string
@@ -403,7 +433,7 @@ func TestGetOrders(t *testing.T) {
 	}
 
 	type request struct {
-		cookie http.Cookie
+		user testUser
 	}
 
 	tests := []struct {
@@ -418,20 +448,16 @@ func TestGetOrders(t *testing.T) {
 				contentType: "application/json; charset=utf-8",
 				body: `[
 					{
-						"number": "5105105105105100",
-						"status": "NEW",
-						"uploaded_at": "2023-12-21T15:09:05Z",
+						"number": "` + orderTest.Order + `",
+						"status": "` + orderTest.Status + `",
+						"uploaded_at": "` + orderTest.UploadedAt + `",
 						"BonusesWithdrawn": null,
 						"accrual": null
 					}
 				]`,
 			},
 			reqest: request{
-				cookie: http.Cookie{
-					Name:  "Auth",
-					Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6ImFiZSJ9.oO_0Lz-4YxuNZFhX5Od2Do1Kr-3srOnN5cGPuyKzZ3Q",
-					Path:  "/",
-				},
+				user: testUserOne,
 			},
 		},
 		{
@@ -442,11 +468,7 @@ func TestGetOrders(t *testing.T) {
 				body:        "",
 			},
 			reqest: request{
-				cookie: http.Cookie{
-					Name:  "Auth",
-					Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6ImFiZTMifQ.D0GQrUu9iIPfjP0_qNW7W7b_dHJ2dL7gzE0kMcAtGD8",
-					Path:  "/",
-				},
+				user: testUserThree,
 			},
 		},
 		{
@@ -457,19 +479,37 @@ func TestGetOrders(t *testing.T) {
 				body:        `{"error": "You are not authenticated"}`,
 			},
 			reqest: request{
-				cookie: http.Cookie{
-					Name:  "1",
-					Value: "2",
-					Path:  "/",
-				},
+				user: testUserThree,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			getCookieRes := httptest.NewRecorder()
+
+			switch tt.name {
+			case "#2 if user don't have orders":
+				getCookieReqBody := `{"login": "` + tt.reqest.user.login + `","password": "` + tt.reqest.user.password + `"}`
+				getCookieReq := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/user/register", bytes.NewBuffer([]byte(getCookieReqBody)))
+				getCookieReq.Header.Set("Content-Type", "application/json; charset=utf-8")
+				router.ServeHTTP(getCookieRes, getCookieReq)
+
+			case "#3 user without cookie":
+
+			default:
+				getCookieReqBody := `{"login": "` + tt.reqest.user.login + `","password": "` + tt.reqest.user.password + `"}`
+				getCookieReq := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/user/login", bytes.NewBuffer([]byte(getCookieReqBody)))
+				getCookieReq.Header.Set("Content-Type", "application/json; charset=utf-8")
+				router.ServeHTTP(getCookieRes, getCookieReq)
+			}
+
+			cookies := getCookieRes.Result().Cookies()
+
 			req := httptest.NewRequest(http.MethodGet, "http://localhost:8080/api/user/orders/", nil)
-			req.AddCookie(&tt.reqest.cookie)
+			for _, cookie := range cookies {
+				req.AddCookie(cookie)
+			}
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
 
