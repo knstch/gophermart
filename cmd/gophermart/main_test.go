@@ -388,7 +388,7 @@ func TestUploadOrder(t *testing.T) {
 			}
 
 			cookies := getCookieRes.Result().Cookies()
-			defer getCookieRes.Result().Body.Close()
+			getCookieRes.Result().Body.Close()
 
 			req := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/user/orders/", bytes.NewBuffer([]byte(tt.reqest.body)))
 			req.Header.Set("Content-Type", tt.reqest.contentType)
@@ -506,7 +506,7 @@ func TestGetOrders(t *testing.T) {
 			}
 
 			cookies := getCookieRes.Result().Cookies()
-			defer getCookieRes.Result().Body.Close()
+			getCookieRes.Result().Body.Close()
 
 			req := httptest.NewRequest(http.MethodGet, "http://localhost:8080/api/user/orders/", nil)
 			for _, cookie := range cookies {
