@@ -29,6 +29,7 @@ The project contains the following folders:
   + config - Contains config package.
     + config.go - configuration setup functions and structs.
   + gophermart - Contains main package.
+    + main_test.go - tests partly covering user flow
     + main.go - main function.
 + docs - swagger documentation.
 + internal - contains dir app where is all logic.
